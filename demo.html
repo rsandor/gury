@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>gury demo - By Ryan Sandor Richards</title>
+  </head>
+  <body style="font-family: helvetica; background-color: #444; color: #ddd; text-align: center">
+    
+    <h1>gury demo</h1>
+    <p>By Ryan Sandor Richards</p>
+    
+    <!-- Create a canvas on the page -->
+    <canvas style="border: 2px solid #555" id="screen"></canvas>
+    
+    <!-- Nice little link back to the repo -->
+    <p><a href="#" style="color: white">Project on github</a></p>
+    
+    <!-- Add jQuery for load behaviors -->
+    <script type="text/javascript" charset="utf-8" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+    
+    <!-- Include the gury library -->
+    <script type="text/javascript" charset="utf-8" src="gury.js"></script>
+    
+    <!-- Now script up a neato canvas scene! -->
+    <script type="text/javascript" charset="utf-8">
+      $(function() {
+        // Get the canvas as a gury object
+        $g('screen')
+          
+          // set its size,
+          .size(256, 256)
+          
+          // and background color
+          .background('black')
+          
+          // Now add a simple function that draws a diagonal line
+          .add(function(ctx) {
+            ctx.strokeStyle = '#f00';
+            ctx.beginPath();
+            ctx.moveTo(10, 10);
+            ctx.lineTo(246, 246);
+            ctx.stroke();
+          })
+          
+          // Add a more complicated animated object
+          .add({
+            x: 20, y: 20, dx: 1, dy: 2, s: 10,
+            draw: function(ctx) {
+              ctx.fillStyle = "#0ff";
+              ctx.fillRect(this.x, this.y, this.s, this.s);
+            
+              this.x += this.dx;
+              if (this.x >= 246 || this.x <= 10) {
+                this.dx *= -1;
+              }
+              this.y += this.dy;
+              if (this.y >= 246 || this.y <= 10) {
+                this.dy *= -1;
+              }
+            }
+          })
+          
+          // Draw the scene's objects onto the canvas
+          .draw()
+          
+          // And finally begin playing the animation!
+          .play(16);
+      });      
+    </script>
+  </body>
+</body>
