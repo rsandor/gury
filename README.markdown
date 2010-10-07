@@ -15,9 +15,9 @@ Usage
 
 Getting started with Gury is a piece of cake! Here's a step-by-step guide:
 
-1) Create an HTML page and add a canvas with an id attribute to the body
-2) Include `gury.js` in a script tag
-3) Write some JavaScript to make a simple animation
+1. Create an HTML page and add a canvas with an id attribute to the body
+2. Include `gury.js` in a script tag
+3. Write some JavaScript to make a simple animation
 
 To see it in action view the `demo.html` file in a canvas enabled browser.
 
