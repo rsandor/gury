@@ -24,8 +24,6 @@ To see it in action view the `demo.html` file in a canvas enabled browser.
 Example
 --------------------------------------------------------------------------------
 Here is an example of some gury code to make a simple spinning square animation.
-
-
   $g('screen').size(100, 100).add({
     theta: 0, 
     draw: function(ctx) {
@@ -38,8 +36,6 @@ Here is an example of some gury code to make a simple spinning square animation.
       this.theta += Math.PI / 120;
     }
   }).play(16);
-
-
 Neat, eh?
 
 
