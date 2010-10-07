@@ -1,0 +1,46 @@
+<!--
+  gury - A jQuery inspired canvas utility library
+  Another demo to show you how to use gury.
+  By Ryan Sandor Richards
+-->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>gury demo - By Ryan Sandor Richards</title>
+  </head>
+  <body style="font-family: helvetica; background-color: #444; color: #ddd; text-align: center">
+    
+    <h1>gury demo 2</h1>
+    <p>By Ryan Sandor Richards</p>
+    
+    <!-- Create a canvas on the page -->
+    <canvas id="screen"></canvas>
+    
+    <!-- Nice little link back to the repo -->
+    <p><a href="http://github.com/rsandor/gury" style="color: white">Project on github</a></p>
+    
+    <!-- Add jQuery for load behaviors -->
+    <script type="text/javascript" charset="utf-8" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+    
+    <!-- Include the gury library -->
+    <script type="text/javascript" charset="utf-8" src="gury.js"></script>
+    
+    <!-- Now script up a neato canvas scene! -->
+    <script type="text/javascript" charset="utf-8">
+      $(function() {
+        $g('screen').size(100, 100).add({
+          theta: 0, 
+          draw: function(ctx) {
+            ctx.save();
+              ctx.translate(50, 50);
+              ctx.rotate(this.theta);
+              ctx.fillStyle = "#ada";
+              ctx.fillRect(-32, -32, 64, 64);
+            ctx.restore();
+            this.theta += Math.PI / 120;
+          }
+        }).play(16);
+      });      
+    </script>
+  </body>
+</body>
