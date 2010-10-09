@@ -14,6 +14,10 @@
     <p>By Ryan Sandor Richards</p>
     
     <div id="content"></div>
+    <div id="controls">
+      <input id="pause" type="button" value="Pause">
+    </div>
+    
     
     <!-- Nice little link back to the repo -->
     <p><a href="http://github.com/rsandor/gury" style="color: white">Project on github</a></p>
@@ -26,6 +30,7 @@
     
     <!-- Now script up a neato canvas scene! -->
     <script type="text/javascript" charset="utf-8">
+      var gury;
       $(function() {
         
         function SpinningCircle(size, fill, dt) {
@@ -45,11 +50,16 @@
           this.theta += this.d_theta;
         };
         
-        $g('screen').size(100, 100)
+        gury = $g('screen').size(100, 100)
           .place('#content')
           .add(new SpinningCircle(64))
           .add(new SpinningCircle(32, "#696", -Math.PI/120))
           .add(new SpinningCircle(16, "#363")).play(16);
+          
+        $('#pause').click(function() {
+          $(this).val($(this).val() == "Pause" ? "Play" : "Pause");
+          gury.pause();
+        });
       });      
     </script>
   </body>

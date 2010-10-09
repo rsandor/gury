@@ -1,0 +1,100 @@
+<!--
+  gury - A jQuery inspired canvas utility library
+  A more complex game made using gury.
+  By Ryan Sandor Richards
+-->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>gury game - By Ryan Sandor Richards</title>
+  </head>
+  <body style="font-family: helvetica; background-color: #444; color: #ddd; text-align: center">
+    
+    <h1>gury game</h1>
+    <p>By Ryan Sandor Richards</p>
+    
+    <div id="content"></div>
+    <div id="controls">
+      <input id="reset" type="button" value="New Game">
+    </div>
+    
+    
+    <!-- Nice little link back to the repo -->
+    <p><a href="http://github.com/rsandor/gury" style="color: white">Project on github</a></p>
+    
+    <!-- Add jQuery for load behaviors -->
+    <script type="text/javascript" charset="utf-8" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+    
+    <!-- Include the gury library -->
+    <script type="text/javascript" charset="utf-8" src="gury.js"></script>
+    
+    <!-- Now script up a neato canvas scene! -->
+    <script type="text/javascript" charset="utf-8">
+      $(function() {
+        var gury = $g();
+        var board;
+        var colors = ["#a00", "#0a0", "#00a"];
+        
+        function reset() {
+          board = [];
+          for (var i=0; i < 16; i++) {
+            board.push([]);
+            for (var j=0; j < 16; j++) {
+              board[i].push(colors[(Math.random()*3)|0]);
+            }
+          }
+          gury.draw();
+        }
+        
+        function get(x, y) {
+          if (x < 0 || y < 0 || x >= board.length || y >= board.length)
+            return null;
+          return board[x][y];
+        }
+        
+        function remove(x, y, c) {
+          if(x >= board.length || y >= board.length || x < 0 || y < 0 || board[x][y] != c || c == "#000")
+            return;
+          board[x][y] = "#000";
+          remove(x+1, y, c);
+          remove(x-1, y, c);
+          remove(x, y+1, c);
+          remove(x, y-1, c);
+        }
+        
+        $(gury.size(256, 256).background('black').place('#content').add({
+          draw: function(ctx) {
+            for (var i = board.length - 1; i >= 0; i--) {
+              for (var j = board.length - 1; j >= 0; j--) {
+                if (board[i][j] == "#000") {
+                  for (var k = j-1; k >= 0; k--) {
+                    if (board[i][k] != "#000") {
+                      board[i][j] = board[i][k];
+                      board[i][k] = "#000";
+                      break;
+                    }
+                  }
+                }
+                ctx.fillStyle = board[i][j];
+                ctx.fillRect(i*16+1, j*16+1, 15, 15);
+              }
+            }
+          }          
+        }).canvas).mousedown(function(e) {
+          var x = e.offsetX / 16 | 0;
+          var y = e.offsetY / 16 | 0;
+          var c = get(x, y);
+          
+          if (get(x+1, y) == c || get(x-1, y) == c || get(x, y+1) == c || get(x, y-1) == c)
+            remove(x, y, board[x][y]);
+          
+          gury.draw();
+        });
+
+        reset();
+
+        $('#reset').click(reset);
+      });      
+    </script>
+  </body>
+</body>
