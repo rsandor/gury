@@ -27,6 +27,9 @@ window.$g = (function() {
    */
   
   function Gury(canvas) {
+    if (canvas == null) {
+      canvas = document.createElement('canvas');
+    }
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this._objects = [];
@@ -34,7 +37,20 @@ window.$g = (function() {
     this._loop_interval = null;
   }
   
-  /*
+  Gury.prototype.place = function(node) {
+    if (typeof node == "string" && typeof $ == "function") {
+      $(node).append(this.canvas);
+    }
+    else if (typeof node == "object" && typeof node.addChild == "function") {
+      node.addChild(this.canvas);
+    }
+    else {
+      // Cannot place. Should we have an exception here? Prolly...
+    }
+    return this;
+  };
+  
+  /*◊
    * Canvas style methods
    */
   
@@ -66,7 +82,7 @@ window.$g = (function() {
         ob.call(this, this.ctx);
       }
       else if (typeof ob == "object" && typeof ob.draw != "undefined") {
-        ob.draw(this.ctx);
+        ob.draw(this.ctx, this.canvas);
       }
     }
     return this;
@@ -104,7 +120,7 @@ window.$g = (function() {
    */
   
   function GuryInterface(id) {
-    return new Gury(document.getElementById(id));
+    return new Gury(id ? document.getElementById(id) : null);
   }
   
   return GuryInterface;

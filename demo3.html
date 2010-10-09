@@ -1,0 +1,56 @@
+<!--
+  gury - A jQuery inspired canvas utility library
+  Another demo to show you how to use gury.
+  By Ryan Sandor Richards
+-->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>gury demo - By Ryan Sandor Richards</title>
+  </head>
+  <body style="font-family: helvetica; background-color: #444; color: #ddd; text-align: center">
+    
+    <h1>gury demo 2</h1>
+    <p>By Ryan Sandor Richards</p>
+    
+    <div id="content"></div>
+    
+    <!-- Nice little link back to the repo -->
+    <p><a href="http://github.com/rsandor/gury" style="color: white">Project on github</a></p>
+    
+    <!-- Add jQuery for load behaviors -->
+    <script type="text/javascript" charset="utf-8" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+    
+    <!-- Include the gury library -->
+    <script type="text/javascript" charset="utf-8" src="gury.js"></script>
+    
+    <!-- Now script up a neato canvas scene! -->
+    <script type="text/javascript" charset="utf-8">
+      $(function() {
+        
+        function SpinningCircle(size, fill, dt) {
+          this.size = size || 64;
+          this.fill = fill || "#ada";
+          this.theta = 0.0;
+          this.d_theta = dt || Math.PI / 120;
+        }
+        
+        SpinningCircle.prototype.draw = function(ctx, canvas) {
+          ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate(this.theta);
+            ctx.fillStyle = this.fill;
+            ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
+          ctx.restore();
+          this.theta += this.d_theta;
+        };
+        
+        $g('screen').size(100, 100)
+          .place('#content')
+          .add(new SpinningCircle(64))
+          .add(new SpinningCircle(32, "#696", -Math.PI/120))
+          .add(new SpinningCircle(16, "#363")).play(16);
+      });      
+    </script>
+  </body>
+</body>
