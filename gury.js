@@ -50,7 +50,7 @@ window.$g = (function() {
     return this;
   };
   
-  /*◊
+  /*
    * Canvas style methods
    */
   
@@ -93,6 +93,11 @@ window.$g = (function() {
    */
   
   Gury.prototype.play = function(interval) {
+    // Ignore multiple play attempts
+    if (this._loop_interval != null) {
+      return;
+    }
+      
     var _gury = this;
     this._loop_interval = setInterval(function() {
       if (!_gury._paused) {
