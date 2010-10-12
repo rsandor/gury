@@ -43,11 +43,11 @@ Neat, eh?
 API Reference
 --------------------------------------------------------------------------------
 
-### $gury(), $g()
+### gury(), $g()
 
 Creates a new canvas node and returns the gury object representing that canvas.
 
-### $gury(id), $g(id)
+### gury(id), $g(id)
 
 Finds a canvas on the page with the given id and returns a gury object
 representing that canvas.
