@@ -299,8 +299,8 @@ Module Methods
 --------------------------------------------------------------------------------
 ### GuryInterface.failWithException()
 
-Returns true if Gury fails with an exception, and returns false if Gury actions
-fail silently. By default it will return true (which is recommended for development,
+Returns `true` if Gury fails with an exception, and returns `false` if Gury actions
+fail silently. By default it will return `true` (which is recommended for development,
 but maybe not for production).
 
 ### GuryInterface.failWithException(b)
