@@ -43,11 +43,11 @@ Neat, eh?
 API Reference
 --------------------------------------------------------------------------------
 
-### $g()
+### $gury, $g()
 
 Creates a new canvas node and returns the gury object representing that canvas.
 
-### $g(id)
+### $gury(id), $g(id)
 
 Finds a canvas on the page with the given id and returns a gury object
 representing that canvas.
@@ -111,6 +111,10 @@ upon which to draw and optionally a reference to the canvas node:
 ### .draw()
 
 Renders the scene by drawing all of the added objects in order on the canvas.
+
+### .clear()
+
+Clears the canvas (does *not* remove any objects bound to the Gury instance).
 
 ### .play(interval)
 
