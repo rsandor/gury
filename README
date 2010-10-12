@@ -43,11 +43,11 @@ Neat, eh?
 API Reference
 --------------------------------------------------------------------------------
 
-### $gury(), $g()
+### gury(), $g()
 
 Creates a new canvas node and returns the gury object representing that canvas.
 
-### $gury(id), $g(id)
+### gury(id), $g(id)
 
 Finds a canvas on the page with the given id and returns a gury object
 representing that canvas.
@@ -120,7 +120,7 @@ Clears the canvas (does *not* remove any objects bound to the Gury instance).
 
 Renders the scene repeatedly at fixed intervals creating an animation. This
 is most useful when used in conjunction with objects that change state on render.
-See `demo1.html` through `demo3.html` for examples of objects that change position
+See `demos/demo1.html` and `demos/demo3.html` for examples of objects that change position
 or rotation on the screen as the animation plays.
 
 ### .pause()

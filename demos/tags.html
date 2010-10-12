@@ -1,0 +1,106 @@
+<!--
+  gury - A jQuery inspired canvas utility library
+  This example illustrates a basic use of tags
+  By Ryan Sandor Richards
+-->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>tags - By Ryan Sandor Richards</title>
+  </head>
+  <body style="font-family: helvetica; background-color: #444; color: #ddd; text-align: center">
+    
+    <h1>tags</h1>
+    <p>By Ryan Sandor Richards</p>
+    
+    <div id="content"></div>
+    <div id="controls">
+      <input type="button" name="toggle_red" value="Toggle Red" id="toggle_red">
+      <input type="button" name="toggle_green" value="Toggle Green" id="toggle_green">
+      <input type="button" name="toggle_blue" value="Toggle Blue" id="toggle_blue">
+      <br>
+      <input type="button" name="hide_all" value="Hide All" id="hide_all">
+      <input type="button" name="toggle_all" value="Toggle All" id="toggle_all">
+      <input type="button" name="show_all" value="Show All" id="show_all">
+    </div>
+    
+    
+    <!-- Nice little link back to the repo -->
+    <p><a href="http://github.com/rsandor/gury" style="color: white">Project on github</a></p>
+    
+    <!-- Add jQuery for load behaviors -->
+    <script type="text/javascript" charset="utf-8" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+    
+    <!-- Include the gury library -->
+    <script type="text/javascript" charset="utf-8" src="../gury.js"></script>
+    
+    <!-- Now script up a neato canvas scene! -->
+    <script type="text/javascript" charset="utf-8">
+      $(function() {
+        g = $g().size(400, 250).background('#222').place('#content');
+        g.canvas.style.border = "6px solid #888";
+        
+        function Ball(fill) {
+          this.x = (Math.random() * g.canvas.width) | 0;
+          this.y = (Math.random() * g.canvas.height) | 0;
+          this.dx = (Math.random() * 2 - 1) * 10;
+          this.dy = (Math.random() * 2 - 1) * 10;
+          this.size = 10*Math.random() + 5;
+          this.fill = fill;
+        }
+        
+        Ball.prototype.update = function() {
+          this.x += this.dx;
+          this.y += this.dy;
+          
+          if (this.x > g.canvas.width - this.size) {
+            this.dx *= -1;
+            this.x = g.canvas.width - this.size;
+          }
+          else if (this.x < this.size) {
+            this.dx *= -1;
+            this.x = this.size;
+          }
+          
+          if (this.y > g.canvas.height - this.size) {
+            this.dy *= -1;
+            this.y = g.canvas.height - this.size;
+          }
+          else if (this.y < this.size) {
+            this.dy *= -1;
+            this.y = this.size;
+          }
+        };
+        
+        Ball.prototype.draw = function(ctx, canvas) {
+          ctx.fillStyle = this.fill;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI*2, false);
+          ctx.fill();
+          this.update();
+        };
+        
+        // Make some balls
+        var numBalls = 20;
+        var colors = ['red', 'green', 'blue'];
+        
+        for (var b = 0; b < numBalls; b++) {
+          var color = colors[(Math.random() * 3) | 0];
+          g.add(color, new Ball(color));
+        }
+        
+        g.play(32);
+        
+        // Add the toggle actions
+        $('#toggle_red').click(function() { g.toggle('red'); });
+        $('#toggle_green').click(function() { g.toggle('green'); });
+        $('#toggle_blue').click(function() { g.toggle('blue'); });
+        
+        // Add the global show, hide, and toggle actions
+        $('#show_all').click(function() { g.show(); });
+        $('#toggle_all').click(function() { g.toggle(); });
+        $('#hide_all').click(function() { g.hide(); });
+      });      
+    </script>
+  </body>
+</body>

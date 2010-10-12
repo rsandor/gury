@@ -40,14 +40,14 @@ Here is an example of some gury code to make a simple spinning square animation.
 
 Neat, eh?
 
-API Reference
+Basic Usage, Placement, and Appearance Methods
 --------------------------------------------------------------------------------
 
-### gury(), $g()
+### Gury(), $g()
 
 Creates a new canvas node and returns the gury object representing that canvas.
 
-### gury(id), $g(id)
+### Gury(id), $g(id)
 
 Finds a canvas on the page with the given id and returns a gury object
 representing that canvas.
@@ -85,6 +85,9 @@ Changes the background style of the canvas represented by the gury object. The
 `color` parameter is expected to be a string containing the CSS for the background
 of the canvas.
 
+Object Methods
+--------------------------------------------------------------------------------
+
 ### .add(object)
 
 Adds an object to be rendered on the canvas. The `object` parameter can be either 
@@ -108,6 +111,143 @@ upon which to draw and optionally a reference to the canvas node:
         }
     });
 
+### .add(tag, object)
+
+As with `.add(object)` this method adds an object to be rendered on the canvas.
+Additionally it associates a tag name with that object for use with the various
+object/tag methods described below.
+
+A quick example:
+
+    $g('my_canvas')
+      .add('players.mario', new Mario())
+      .add('players.luigi', new Luigi())
+      .toggle('players.mario'); // Luigi finally has his day!
+
+Tags are hierarchical, meaning that if you were to then execute:
+
+    $g('my_canvas').toggle('players')
+    
+It would show the `Mario` object and hide the `Luigi` object (and Luigi would no
+longer rule the day, alas). For more information read the section on object tags 
+above and see the tag methods (`.each()`, `.hide()`, etc.) below.
+
+### .each(closure)
+
+Executes a closure on each of the objects associated with the canvas. An example
+explains this a bit better:
+
+    $g('my_canvas')
+      .add(new Ball())
+      .add(new Ball())
+      .each(function(object, index) {
+        object.x -= 10;
+        object.y += 10; 
+      }).animate(16);
+
+Executing the script above would move each of the objects 10 pixels down and 10 
+pixels to the left (note that the `Ball` class is not part of Gury but is used as
+an example).
+
+### .each(tag, closure)
+
+Does the same thing as `.each(closure)` but only iterates over objects that were added
+with the provided `tag` parameter. Let's take a look with an example:
+
+    $g('my_canvas')
+      .add('red', new Ball('red'))
+      .add('red', new Ball('red'))
+      .add('green', new Ball('green'))
+      .each('red', function(object) {
+        object.x -= 10;
+        object.y += 10;
+      }).draw();
+
+In this example only balls that were tagged with `red` will be moved down and to the left.
+All other balls (i.e. the `green` tagged ball) will remain unaffected.
+
+***Important:*** Just changing the properties of objects will not cause the canvas
+to redraw and display those changes. For static scenes we must explicitly redraw
+using the `.draw()` method. Animated scenes tend not to have this problem as they
+are technically calling `.draw()` on each animation interval.
+
+Keep this in mind for `.each()`, `.hide()`, `.show()`, or `.toggle()` methods.
+This may change in the future, but for now it's the law of the land.
+
+### .hide() / .hide(tag)
+
+Prevents objects from drawing and animating. Example:
+
+    $g('my_canvas')
+      .add('circle', new Circle())
+      .add('box', new Box())
+      .hide().draw();
+
+The preceding example would hide all objects regardless of their tag. Here's
+another example:
+
+    $g('my_canvas')
+      .add('circle', new Circle())
+      .add('box', new Box())
+      .hide('circle').draw();
+
+which hides only the circle, leaving the box rendering alone (poor lonely box).
+Again, as with many of these examples, the `Box` and `Circle` classes aren't part
+of Gury but are used as examples.
+
+### .show() / .show(tag)
+
+Ensures that objects render and animate. Example:
+
+    $g('my_canvas')
+      .add('box', new Box())
+      .hide('box').draw();
+      
+    // ... Maybe do some other stuff ...
+    
+    $g('my_canvas').show().draw();
+
+In the preceding example we created a box, immediately hid it, and then turned 
+around and decided to show everything anyway. While not practical (or particularly
+sane) it is illustrative of using `.show()`. The next example uses tags:
+
+    $g('my_canvas')
+      .add('box', new Box())
+      .add('circle', new Circle)
+      .hide()
+      .show('circle').animate(32);
+
+In this example we add a box, then a circle, then hide everything, and finally show
+only the circle by using tags.
+
+### .toggle() / .toggle(tag)
+What visibility library would be complete without a toggle method? This method basically
+just toggles objects on and off as it is called. Let's get going with an example:
+
+    var gury = $g('my_canvas')
+      .add('box', new Box())
+      .add('circle', new Circle()).play(16);
+      
+    // Add a little jQuery action...
+    $('#my_button').click(function() {
+      gury.toggle();
+    });
+
+The example above simply adds a box and a circle and then uses some jQuery magic to bind
+an event that toggles all of the objects on and off when some element with the id `my_button`
+is clicked. A final example should cement the concept:
+
+    $('my_canvas')
+      .add('box', new Box())
+      .add('circle', new Circle())
+      .toggle('box').draw();
+
+Simple enough: we just add a box, a circle, then toggle the box off and draw the scene.
+
+
+Drawing and Animation Methods
+--------------------------------------------------------------------------------
+
 ### .draw()
 
 Renders the scene by drawing all of the added objects in order on the canvas.
@@ -120,7 +260,7 @@ Clears the canvas (does *not* remove any objects bound to the Gury instance).
 
 Renders the scene repeatedly at fixed intervals creating an animation. This
 is most useful when used in conjunction with objects that change state on render.
-See `demo1.html` through `demo3.html` for examples of objects that change position
+See `demos/demo1.html` and `demos/demo3.html` for examples of objects that change position
 or rotation on the screen as the animation plays.
 
 ### .pause()
@@ -131,6 +271,41 @@ Pauses and un-pauses a running gury animation.
 
 Fully stops the gury animation. You must call `play()` in order to start the animation
 again after calling `stop()`.
+
+Module Methods
+--------------------------------------------------------------------------------
+### GuryInterface.failWithException()
+
+Returns true if Gury fails with an exception, and returns false if Gury actions
+fail silently. By default it will return true (which is recommended for development,
+but maybe not for production).
+
+### GuryInterface.failWithException(b)
+
+Allows you to set whether or not Gury will fail silently or with an exception.
+Just set the `b` parameter to `false` if you do not want to see failure exceptions
+and to `true` if you do.
+
+
+A Note on Objects and Canvas Tags
+--------------------------------------------------------------------------------
+Each object you add to the display list using Gury will be annotated with a special
+property named `._gury`. Essentially it holds information about the object with
+respect to the canvas it is to be displayed on (a good example is the object's visibility 
+status, used by `.toggle()` et. al.). This is true of both objects and functions that 
+are added using the `.add()` method.
+
+***WARNING*** If you alter or replace the `._gury` property of an object it may break
+some basic internal functionality (such as hiding/showing, etc.).
+
+Additionally canvas tags that are associated with or created by Gury will also be
+annotated with a special property named `._gury_id`. This allows Gury to ensure
+a persistent state between multiple calls to the `$g()` method. 
+
+***WARNING*** If you alter or replace the `._gury_id` property of your canvas
+tags you could break the internal functionality for pretty much all methods,
+lose objects, or even cause unsightly memory leaks (no amount of coding cosmetics
+can save you from a memory leak blemish, just ask any C programmer).
 
 License (MIT)
 --------------------------------------------------------------------------------

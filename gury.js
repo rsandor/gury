@@ -21,14 +21,32 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
 */
-window.gury = window.$g = (function() {
+
+window.$g = window.Gury = (function() {
   /*
    * Utility functions
    */
   function isObject(v) { return typeof v == "object"; }
-  function isFunc(v) { return typeof v == "function"; }
+  function isFunction(v) { return typeof v == "function"; }
   function isString(v) { return typeof v == "string"; }
-  function isObjectOrFunc(v) { return typeof v == "function" || typeof v == "object"; }
+  function isObjectOrFunction(v) { return typeof v == "function" || typeof v == "object"; }
+  
+  function _each(closure) {
+    for (var i = 0; i < this.length; i++) {
+      closure(this[i], i);
+    }
+  }
+  
+  /*
+   * Internal exception handling
+   */
+  var _failWithException = true;
+  
+  function GuryException(msg) {
+    if (_failWithException) {
+      throw "Gury: " + msg;
+    }
+  }
   
   /*
    * These handle mappings from Canvas DOM elements to Gury instances
@@ -49,17 +67,101 @@ window.gury = window.$g = (function() {
   }
   
   function setGury(canvas, gury) {
-    var gid;
-    
     if (typeof canvas._gury_id == "string") {
-      gid = canvas._gury_id;
+      gury.id = canvas._gury_id;
     }
     else {
-      gid = canvas._gury_id = nextGuryId();
+      gury.id = canvas._gury_id = nextGuryId();
     }
 
-    return canvasToGury[gid] = gury;
+    return canvasToGury[gury.id] = gury;
   }
+  
+  /*
+   * Tag Namespace Object
+   */
+  function TagSpace(name, objects) {
+    this.name = name;
+    this._children = {};
+    this._objects = objects || [];
+  }
+  
+  TagSpace.TAG_REGEX = /^[a-zA-Z0-9_]+(\.[a-zA-Z0-9_]+)*$/;
+  
+  TagSpace.prototype.hasChild = function(name) {
+    return isObject(this._children[name]);
+  };
+  
+  TagSpace.prototype.addChild = function(name) {
+    return this._children[name] = new TagSpace(name);
+  };
+  
+  TagSpace.prototype.getChild = function(name) {
+    return this._children[name];
+  };
+  
+  TagSpace.prototype.getObjects = function() {
+    // This might be a little slow, but it helps us keep spaces consistent
+    var objects = [];
+    for (var i = 0; i < this._objects.length; i++) {
+      objects.push(this._objects[i]);
+    }
+    
+    // And lets us annotate what we return :)
+    objects.each = _each;
+    
+    return objects;
+  };
+  
+  TagSpace.prototype.find = function(tag) {
+    if (!tag.match(TagSpace.TAG_REGEX)) {
+      return null;
+    }
+    
+    var currentSpace = this;
+    var tags = tag.split('.');
+    var lastName = tags[tags.length - 1];
+    
+    for (var i = 0; i < tags.length; i++) {
+      if (!currentSpace.hasChild(tags[i]))
+        return null;
+      currentSpace = currentSpace.getChild(tags[i]);
+    }
+    
+    return currentSpace;
+  };
+  
+  TagSpace.prototype.add = function(tag, object) {
+    if (!tag.match(TagSpace.TAG_REGEX)) {
+      return null;
+    }
+    
+    var currentSpace = this;
+    var tags = tag.split('.');
+    var lastName = tags[tags.length - 1];
+    
+    for (var i = 0; i < tags.length; i++) {
+      if (currentSpace.hasChild(tags[i])) {
+        currentSpace = currentSpace.getChild(tags[i]);
+      }
+      else {
+        currentSpace = currentSpace.addChild(tags[i]);
+      }
+    }
+  
+    // TODO: There's probably a better way to check for duplicates
+    //  ... but that's why they call it "iterative" development :P
+    
+    for (i = 0; i < currentSpace._objects.length; i++) {
+      if (currentSpace._objects[i] == object) {
+        return object;
+      }
+    }
+    
+    currentSpace._objects.push(object);
+    
+    return object;
+  };
   
   /*
    * Core Gury Class
@@ -80,7 +182,10 @@ window.gury = window.$g = (function() {
     this.ctx = canvas.getContext('2d');
     
     this._objects = [];
-    this._groups = {};
+    this._objects.each = _each;
+    
+    this._tags = new TagSpace('__global');
+    
     this._paused = false;
     this._loop_interval = null;
   
@@ -95,7 +200,7 @@ window.gury = window.$g = (function() {
       node.addChild(this.canvas);
     }
     else {
-      // Cannot place. Should we have an exception here? Prolly...
+      GuryException("place() - Unable to place canvas tag (is jQuery loaded?)");
     }
     return this;
   };
@@ -119,51 +224,61 @@ window.gury = window.$g = (function() {
    * Objects and Rendering
    */
   
-  function _add(gury, name, object) {
-    if (name) {
-      var parts = name.split('.');
-      for (var i=0; i < parts.length; i++) {
-        
-      }
-    }
-    
-    gury._objects.push(object);
+  function _annotate_object(object) {
+    object._gury = {
+      visible: true
+    };
   }
-    
+  
   Gury.prototype.add = function() {
-    var name = null, obj;
+    var tag = null, obj;
     
     if (arguments.length < 1) {
       return this;
     }
     else if (arguments.length < 2) {
       obj = arguments[0];
-      if (!isObjectOrFunc(obj)) {
+      if (!isObjectOrFunction(obj)) {
         return this;
       }
     }
     else {
-      name = arguments[0];
+      tag = arguments[0];
       obj = arguments[1];
       if (!isString(name) || !isObjectOrFunction(obj)) {
         return this;
       }
     }
     
-    _add(this, name, obj);
+    // Annotate the object with gury specific members
+    _annotate_object(obj);
+    
+    // Add the object to the global tag space (if a tag was provided)
+    if (tag != null) {
+      this._tags.add(tag, obj);
+    }
+    
+    // Add to the rendering list
+    this._objects.push(obj);
     
     return this;
   };
   
-  Gury.prorotype.clear = function() {
+  Gury.prototype.clear = function() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     return this;
   };
   
   Gury.prototype.draw = function() {
     this.clear();
+    
     for (var i = 0; i < this._objects.length; i++) {
       var ob = this._objects[i];
+      
+      if (!ob._gury.visible) {
+        continue;
+      }
+      
       if (typeof ob == "function") {
         ob.call(this, this.ctx);
       }
@@ -207,6 +322,54 @@ window.gury = window.$g = (function() {
   };
   
   /*
+   * Object / Tag Methods
+   */
+  Gury.prototype.each = function() {
+    var tag, closure;
+    
+    if (arguments.length < 2 && isFunction(arguments[0])) {
+      closure = arguments[0];
+      this._objects.each(closure);
+    }
+    else if (isString(arguments[0]) && isFunction(arguments[1])) {
+      tag = arguments[0];
+      closure = arguments[1];
+      var space = this._tags.find(tag);
+      if (space) {
+        space.getObjects().each(closure);
+      }
+    }
+    else if (isFunction(arguments[0])) {
+      closure = arguments[0];
+      this._objects.each(closure);
+    }
+    else if (isFunction(arguments[1])) {
+      closure = arguments[1];
+      this._objects.each(closure);
+    }
+    
+    return this;
+  };
+   
+  Gury.prototype.hide = function(tag) {
+    return this.each(tag, function(obj, index) {
+      obj._gury.visible = false;
+    });
+  };
+  
+  Gury.prototype.show = function(tag) {
+    return this.each(tag, function(obj, index) {
+      obj._gury.visible = true;
+    });
+  };
+  
+  Gury.prototype.toggle = function(tag) {
+    return this.each(tag, function(obj, index) {
+      obj._gury.visible = !obj._gury.visible;
+    });
+  };
+  
+  /*
    * Public interface
    */
   
@@ -214,5 +377,15 @@ window.gury = window.$g = (function() {
     return new Gury(id ? document.getElementById(id) : null);
   }
   
+  GuryInterface.failWithException = function(b) {
+    if (!b) {
+      return _failWithException;
+    }
+    return _failWithException = b ? true : false;
+  };
+  
   return GuryInterface;
 })();
+
+// "There's a star man waiting in the sky. He'd like to come and meet us but 
+// he think's he'll blow our minds."
