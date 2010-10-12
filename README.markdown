@@ -297,13 +297,13 @@ again after calling `stop()`.
 
 Module Methods
 --------------------------------------------------------------------------------
-### GuryInterface.failWithException()
+### Gury.failWithException()
 
 Returns `true` if Gury fails with an exception, and returns `false` if Gury actions
 fail silently. By default it will return `true` (which is recommended for development,
 but maybe not for production).
 
-### GuryInterface.failWithException(b)
+### Gury.failWithException(b)
 
 Allows you to set whether or not Gury will fail silently or with an exception.
 Just set the `b` parameter to `false` if you do not want to see failure exceptions
