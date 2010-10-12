@@ -30,11 +30,21 @@ window.$g = window.Gury = (function() {
   function isFunction(v) { return typeof v == "function"; }
   function isString(v) { return typeof v == "string"; }
   function isObjectOrFunction(v) { return typeof v == "function" || typeof v == "object"; }
+  function isDefined(v) { return typeof v != "undefined" && v != null; }
   
   function _each(closure) {
     for (var i = 0; i < this.length; i++) {
       closure(this[i], i);
     }
+  }
+  
+  function unique(needle, haystack) {
+    for (var i=0; i < haystack.length; i++) {
+      if (needle == haystack[i]) {
+        return false;
+      }
+    }
+    return true;
   }
   
   /*
@@ -149,13 +159,8 @@ window.$g = window.Gury = (function() {
       }
     }
   
-    // TODO: There's probably a better way to check for duplicates
-    //  ... but that's why they call it "iterative" development :P
-    
-    for (i = 0; i < currentSpace._objects.length; i++) {
-      if (currentSpace._objects[i] == object) {
-        return object;
-      }
+    if (!unique(object, currentSpace._objects)) {
+      return object;
     }
     
     currentSpace._objects.push(object);
@@ -225,9 +230,10 @@ window.$g = window.Gury = (function() {
    */
   
   function _annotate_object(object) {
-    object._gury = {
-      visible: true
-    };
+    if (isDefined(object._gury)) {
+      return;
+    }
+    object._gury = { visible: true };
   }
   
   Gury.prototype.add = function() {
@@ -249,14 +255,22 @@ window.$g = window.Gury = (function() {
         return this;
       }
     }
-    
-    // Annotate the object with gury specific members
-    _annotate_object(obj);
-    
+
     // Add the object to the global tag space (if a tag was provided)
     if (tag != null) {
       this._tags.add(tag, obj);
     }
+    
+    // We can apply new tags using add, but we don't want to keep track of the
+    // object twice in the master rendering list...
+    if (!unique(obj, this._objects)) {
+      return this;
+    }
+    
+    // TODO How should we handle adding the same object to multiple canvases?
+    
+    // Annotate the object with gury specific members
+    _annotate_object(obj);
     
     // Add to the rendering list
     this._objects.push(obj);
