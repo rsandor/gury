@@ -23,6 +23,45 @@
 */
 window.$g = (function() {
   /*
+   * Utility functions
+   */
+  function isObject(v) { return typeof v == "object"; }
+  function isFunc(v) { return typeof v == "function"; }
+  function isString(v) { return typeof v == "string"; }
+  function isObjectOrFunc(v) { return typeof v == "function" || typeof v == "object"; }
+  
+  /*
+   * These handle mappings from Canvas DOM elements to Gury instances
+   * to allow for persistant states between calls to the module.
+   */
+  var guryId = 1;
+  var canvasToGury = {};
+  
+  function nextGuryId() { 
+    return "gury_id_" + (guryId++); 
+  }
+  
+  function getGury(canvas) {
+    if (!isString(canvas._gury_id) || !(canvasToGury[canvas._gury_id] instanceof Gury)) {
+      return null;
+    }
+    return canvasToGury[canvas._gury_id];
+  }
+  
+  function setGury(canvas, gury) {
+    var gid;
+    
+    if (typeof canvas._gury_id == "string") {
+      gid = canvas._gury_id;
+    }
+    else {
+      gid = canvas._gury_id = nextGuryId();
+    }
+
+    return canvasToGury[gid] = gury;
+  }
+  
+  /*
    * Core Gury Class
    */
   
@@ -30,11 +69,22 @@ window.$g = (function() {
     if (canvas == null) {
       canvas = document.createElement('canvas');
     }
+    
+    // Check for an existing mapping from the canvas to a Gury instance
+    if (getGury(canvas)) {
+      return getGury(canvas);
+    }
+    
+    // Otherwise create a new instance
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
+    
     this._objects = [];
+    this._groups = {};
     this._paused = false;
     this._loop_interval = null;
+  
+    return setGury(canvas, this);
   }
   
   Gury.prototype.place = function(node) {
@@ -69,13 +119,49 @@ window.$g = (function() {
    * Objects and Rendering
    */
   
-  Gury.prototype.add = function(d) {
-    this._objects.push(d);
+  function _add(gury, name, object) {
+    if (name) {
+      var parts = name.split('.');
+      for (var i=0; i < parts.length; i++) {
+        
+      }
+    }
+    
+    gury._objects.push(object);
+  }
+    
+  Gury.prototype.add = function() {
+    var name = null, obj;
+    
+    if (arguments.length < 1) {
+      return this;
+    }
+    else if (arguments.length < 2) {
+      obj = arguments[0];
+      if (!isObjectOrFunc(obj)) {
+        return this;
+      }
+    }
+    else {
+      name = arguments[0];
+      obj = arguments[1];
+      if (!isString(name) || !isObjectOrFunction(obj)) {
+        return this;
+      }
+    }
+    
+    _add(this, name, obj);
+    
+    return this;
+  };
+  
+  Gury.prorotype.clear = function() {
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     return this;
   };
   
   Gury.prototype.draw = function() {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.clear();
     for (var i = 0; i < this._objects.length; i++) {
       var ob = this._objects[i];
       if (typeof ob == "function") {
@@ -95,7 +181,7 @@ window.$g = (function() {
   Gury.prototype.play = function(interval) {
     // Ignore multiple play attempts
     if (this._loop_interval != null) {
-      return;
+      return this;
     }
       
     var _gury = this;

@@ -52,6 +52,18 @@ Creates a new canvas node and returns the gury object representing that canvas.
 Finds a canvas on the page with the given id and returns a gury object
 representing that canvas.
 
+### .canvas
+
+The canvas node represented by the gury object. Example:
+
+    $g().canvas.style.border = "5px solid red";
+
+### .ctx
+
+The graphics context for the canvas represented by the gury object. Example:
+
+    $g().ctx.fillStyle = "#a0a";
+
 ### .place(node)
 
 This method is used to place canvas objects created using gury. If the `node`
@@ -99,6 +111,10 @@ upon which to draw and optionally a reference to the canvas node:
 ### .draw()
 
 Renders the scene by drawing all of the added objects in order on the canvas.
+
+### .clear()
+
+Clears the canvas (does *not* remove any objects bound to the Gury instance).
 
 ### .play(interval)
 
