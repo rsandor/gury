@@ -70,20 +70,43 @@ This method is used to place canvas objects created using gury. If the `node`
 parameter is a DOM element then the canvas will be added as a child to that DOM
 element. If the `node` parameter is a string and jQuery is available the parameter
 is treated as a selector and the canvas is appended to the nodes returned by 
-applying the jQuery selector, like so:
+applying the jQuery selector.
 
-    $(node).append(canvas)
+Here's an example that places the canvas inside a node:
+
+    var container = document.getElementById('my_div');
+    $g().place(container);
+
+And another that uses jQuery to place the canvas (given jQuery is loaded, of course):
+
+    $g().place('#my_div');
+
+*** Important *** The second example requires that you have loaded jQuery before
+executing the script. If jQuery is not loaded then the method will throw an exception.
+For more information on jQuery see http://jquery.com
 
 ### .size(width, height)
 
 Changes the size of the canvas represented by the gury object. The parameters
-are expected to be in pixels.
+are expected to be in pixels. Example:
+
+    $g().size(200, 200);
+
+which creates a new canvas and sizes it to 200px by 200px.
 
 ### .background(color)
 
 Changes the background style of the canvas represented by the gury object. The
 `color` parameter is expected to be a string containing the CSS for the background
-of the canvas.
+of the canvas. Here's an example that set's an existing canvas' background to
+light gray:
+
+    $g('my_canvas').background('#aaa');
+
+And another that resizes, sets the background, and finally places a canvas (this is
+a pretty common string of operation):
+
+    $g().size(400, 250).background('black').place('#my_div');
 
 Object Methods
 --------------------------------------------------------------------------------
