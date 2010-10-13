@@ -2,9 +2,9 @@ gury - A jQuery inspired canvas utility library
 ================================================================================
 by Ryan Sandor Richards
 
-Gury (pronounced "jury") is a simple to use utility library for drawing and
-animating when using HTML5 canvas tags. It takes the guess work out of setting
-and allows you to build your scenes one object at a time.
+Gury (pronounced "jury") is a simple to use utility library for drawing,
+animating, and managing HTML5 canvas tags. The goal is to support the HTML5
+Canvas API with a framework that allows for faster/easier application development.
 
 It was built with simplicity in mind and its usage was modeled in the image
 of jQuery. For instance you can initialize, style, and animate an entire scene

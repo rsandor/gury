@@ -46,7 +46,7 @@ window.$g = window.Gury = (function() {
     }
     return true;
   }
-  
+
   /*
    * Internal exception handling
    */
@@ -168,6 +168,10 @@ window.$g = window.Gury = (function() {
     return object;
   };
   
+  TagSpace.prototype.remove = function(object) {
+    // TODO Implement me
+  };
+  
   /*
    * Core Gury Class
    */
@@ -275,6 +279,11 @@ window.$g = window.Gury = (function() {
     // Add to the rendering list
     this._objects.push(obj);
     
+    return this;
+  };
+  
+  Gury.prototype.remove = function(object) {
+    // TODO Implement me
     return this;
   };
   
