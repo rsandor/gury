@@ -32,21 +32,6 @@ window.$g = window.Gury = (function() {
   function isObjectOrFunction(v) { return typeof v == "function" || typeof v == "object"; }
   function isDefined(v) { return typeof v != "undefined" && v != null; }
   
-  function _each(closure) {
-    for (var i = 0; i < this.length; i++) {
-      closure(this[i], i);
-    }
-  }
-  
-  function unique(needle, haystack) {
-    for (var i=0; i < haystack.length; i++) {
-      if (needle == haystack[i]) {
-        return false;
-      }
-    }
-    return true;
-  }
-
   /*
    * Internal exception handling
    */
@@ -88,12 +73,186 @@ window.$g = window.Gury = (function() {
   }
   
   /*
+   * Dynamic Set
+   */
+  function Set(ord) {
+    var buckets = {};
+    var ordered = ord ? [] : false;
+    
+    /*
+     * MurmurHash adapted from: http://gist.github.com/588423 (raycmorgan)
+     */
+    function UInt32(str, pos) {
+      return (str.charCodeAt(pos++)) +
+             (str.charCodeAt(pos++) << 8) +
+             (str.charCodeAt(pos++) << 16) +
+             (str.charCodeAt(pos) << 24);
+    }
+
+    function UInt16(str, pos) {
+      return (str.charCodeAt(pos++)) +
+             (str.charCodeAt(pos++) << 8);
+    }
+
+    function Umul32(n, m) {
+      n = n | 0;
+      m = m | 0;
+      var nlo = n & 0xffff;
+      var nhi = n >>> 16;
+      var res = ((nlo * m) + (((nhi * m) & 0xffff) << 16)) | 0;
+      return res;
+    }
+    
+    function doHash(str, seed) {
+      var m = 0x5bd1e995;
+      var r = 24;
+      var h = seed ^ str.length;
+      var length = str.length;
+      var currentIndex = 0;
+
+      while (length >= 4) {
+        var k = UInt32(str, currentIndex);
+
+        k = Umul32(k, m);
+        k ^= k >>> r;
+        k = Umul32(k, m);
+
+        h = Umul32(h, m);
+        h ^= k;
+
+        currentIndex += 4;
+        length -= 4;
+      }
+
+      switch (length) {
+      case 3:
+        h ^= UInt16(str, currentIndex);
+        h ^= str.charCodeAt(currentIndex + 2) << 16;
+        h = Umul32(h, m);
+        break;
+
+      case 2:
+        h ^= UInt16(str, currentIndex);
+        h = Umul32(h, m);
+        break;
+
+      case 1:
+        h ^= str.charCodeAt(currentIndex);
+        h = Umul32(h, m);
+        break;
+      }
+
+      h ^= h >>> 13;
+      h = Umul32(h, m);
+      h ^= h >>> 15;
+
+      return h >>> 0;
+    }
+    
+    function hash(object) {
+      if (isDefined(object._gury_hash)) {
+        return object._gury_hash;
+      }
+      
+      var json = "";
+      if (isFunction(object)) {
+        var sample = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        for (var i = 0; i < 40; i++) {
+          var k = sample.length * Math.random() | 0;
+          json += sample.substring(k, k+1);
+        }
+      }
+      else {
+        json = JSON.stringify(object);
+      }
+      
+      return object._gury_hash = doHash(json, json.length);
+    }
+    
+    this.has = function(object) {
+      var h = hash(object);
+      if (isDefined(buckets[h])) {
+        var bucket = buckets[h];
+        for (var i = 0; i < bucket.length; i++) {
+          if (bucket[i] == object) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+    
+    this.add = function(object) {
+      if (this.has(object)) {
+        return this;
+      }
+      
+      var h = hash(object);
+      if (!isDefined(buckets[h])) {
+        buckets[h] = [];
+      }
+      
+      buckets[h].push(object);
+      
+      if (ordered) {
+        ordered.push(object);
+      }
+      
+      return this;
+    };
+
+    this.remove = function(object) {
+      if (!this.has(object)) {
+        return this;
+      }
+      
+      var h = hash(object);
+      var bucket = buckets[h];
+      
+      if (ordered) {
+        for (var k = 0; k < ordered.length; k++) {
+          if (ordered[k] == object) {
+            ordered.splice(k, 1);
+            break;
+          }
+        }
+      }
+      
+      for (var i = 0; i < bucket.length; i++) {
+        if (bucket[i] == object) {
+          bucket.splice(i, 1);
+          return this;
+        }
+      }
+      
+      return this;
+    };
+    
+    this.each = function(closure) {
+      var i;
+      if (ordered) {
+        for (i = 0; i < ordered.length; i++) {
+          closure(ordered[i], i);
+        }
+      }
+      else {
+        for (var h in buckets) {
+          var bucket = buckets[h];
+          for (i = 0; i < bucket.length; i++) {
+            closure(bucket[i], i);
+          }
+        }
+      }
+    };
+  }
+  
+  /*
    * Tag Namespace Object
    */
-  function TagSpace(name, objects) {
+  function TagSpace(objects) {
     this.name = name;
     this._children = {};
-    this._objects = objects || [];
+    this._objects = new Set();
   }
   
   TagSpace.TAG_REGEX = /^[a-zA-Z0-9_]+(\.[a-zA-Z0-9_]+)*$/;
@@ -111,16 +270,7 @@ window.$g = window.Gury = (function() {
   };
   
   TagSpace.prototype.getObjects = function() {
-    // This might be a little slow, but it helps us keep spaces consistent
-    var objects = [];
-    for (var i = 0; i < this._objects.length; i++) {
-      objects.push(this._objects[i]);
-    }
-    
-    // And lets us annotate what we return :)
-    objects.each = _each;
-    
-    return objects;
+    return this._objects;
   };
   
   TagSpace.prototype.find = function(tag) {
@@ -159,11 +309,7 @@ window.$g = window.Gury = (function() {
       }
     }
   
-    if (!unique(object, currentSpace._objects)) {
-      return object;
-    }
-    
-    currentSpace._objects.push(object);
+    currentSpace._objects.add(object);
     
     return object;
   };
@@ -190,9 +336,7 @@ window.$g = window.Gury = (function() {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     
-    this._objects = [];
-    this._objects.each = _each;
-    
+    this._objects = new Set(true);
     this._tags = new TagSpace('__global');
     
     this._paused = false;
@@ -267,17 +411,15 @@ window.$g = window.Gury = (function() {
     
     // We can apply new tags using add, but we don't want to keep track of the
     // object twice in the master rendering list...
-    if (!unique(obj, this._objects)) {
+    if (this._objects.has(obj)) {
       return this;
     }
-    
-    // TODO How should we handle adding the same object to multiple canvases?
     
     // Annotate the object with gury specific members
     _annotate_object(obj);
     
     // Add to the rendering list
-    this._objects.push(obj);
+    this._objects.add(obj);
     
     return this;
   };
@@ -295,20 +437,19 @@ window.$g = window.Gury = (function() {
   Gury.prototype.draw = function() {
     this.clear();
     
-    for (var i = 0; i < this._objects.length; i++) {
-      var ob = this._objects[i];
-      
+    var gury = this;
+    gury._objects.each(function(ob) {
       if (!ob._gury.visible) {
-        continue;
+        return;
       }
-      
       if (typeof ob == "function") {
-        ob.call(this, this.ctx);
+        ob.call(gury, gury.ctx);
       }
       else if (typeof ob == "object" && typeof ob.draw != "undefined") {
-        ob.draw(this.ctx, this.canvas);
+        ob.draw(gury.ctx, gury.canvas);
       }
-    }
+    });
+    
     return this;
   };
   
