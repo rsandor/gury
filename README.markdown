@@ -155,6 +155,32 @@ It would show the `Mario` object and hide the `Luigi` object (and Luigi would no
 longer rule the day, alas). For more information read the section on object tags 
 above and see the tag methods (`.each()`, `.hide()`, etc.) below.
 
+### .remove(object)
+
+Removes an object from the canvas. If the object is not in the canvas then this
+method has no effect. Here's an example:
+
+    // Add a circle
+    var circle = new Circle();
+    $g('my_canvas').add(circle).draw();
+    
+    // Remove that same circle
+    $g('my_canvas').remove(circle).draw();
+
+Again, remember that if you are not animating the canvas you will need to call
+`.draw` in order for the changes to appear.
+
+### .remove(tag)
+
+Removes all objects with the given tag from the canvas. Here's an example:
+
+    // Add a box and a circle
+    $g('my_canvas').add('circle', new Circle()).add('box', new Box()).draw();
+    
+    // Remove the box
+    $g('my_canvas').remove('box').draw();
+     
+
 ### .each(closure)
 
 Executes a closure on each of the objects associated with the canvas. An example

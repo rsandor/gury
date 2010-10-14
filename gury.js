@@ -315,9 +315,35 @@ window.$g = window.Gury = (function() {
     return object;
   };
   
-  TagSpace.prototype.remove = function(object) {
-    // TODO Implement me
-    // Keep a list of all the objects removed so we can send them back to the Gury object
+  TagSpace.prototype.clearObjects = function() {
+    this._objects = new Set();
+  };
+  
+  TagSpace.prototype._remove_object = function(o) {
+    this._objects.remove(o);
+    for (var k in this._children) {
+      var child = this._children[k];
+      child._remove_object(o);
+    }
+  };
+  
+  TagSpace.prototype.remove = function(q) {
+    var removed = new Set();
+
+    if (isString(q)) {
+      var space = this.find(q);
+      if (!space) {
+        return removed;
+      }
+      removed = space.getObjects();
+      space.clearObjects();
+    }
+    else {
+      this._remove_object(q);
+      removed.add(q);
+    }
+    
+    return removed;
   };
   
   /*
@@ -427,7 +453,13 @@ window.$g = window.Gury = (function() {
   };
   
   Gury.prototype.remove = function(object) {
-    // TODO Implement me
+    if (isDefined(object)) {
+      var gury = this;
+      var removed = this._tags.remove(object);
+      removed.each(function(r) {
+        gury._objects.remove(r);
+      });
+    }
     return this;
   };
   
