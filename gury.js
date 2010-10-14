@@ -30,7 +30,15 @@ window.$g = window.Gury = (function() {
   function isFunction(v) { return typeof v == "function"; }
   function isString(v) { return typeof v == "string"; }
   function isObjectOrFunction(v) { return typeof v == "function" || typeof v == "object"; }
-  function isDefined(v) { return typeof v != "undefined" && v != null; }
+  
+  function isDefined() { 
+    for (var i = 0; i < arguments.length; i++) {
+      if (typeof arguments[i] == "undefined" || arguments[i] === null) {
+        return false;
+      }
+    }
+    return arguments.length > 0;
+  }
   
   /*
    * Internal exception handling
@@ -73,8 +81,12 @@ window.$g = window.Gury = (function() {
   }
   
   /*
-   * Dynamic Set
+   * Hash and Dynamic Set Structures
    */
+  function HashTable(ord) {
+    // TODO Implement me... if needed
+  }
+   
   function Set(ord) {
     var buckets = {};
     var ordered = ord ? [] : false;
@@ -180,6 +192,17 @@ window.$g = window.Gury = (function() {
         }
       }
       return false;
+    };
+    
+    // Returns the set of objects in the bucket with the given hash
+    this.get = function(h) {
+      var set = new Set();
+      if (isDefined(buckets[h])) {
+        for (var i = 0; i < buckets[h].length; i++) {
+          set.add(buckets[h][i]);
+        }
+      }
+      return set;
     };
     
     this.add = function(object) {
@@ -369,6 +392,10 @@ window.$g = window.Gury = (function() {
     
     this._paused = false;
     this._loop_interval = null;
+  
+    // These are for event handling
+    this._events = {};
+    setupEvents(this);
   
     return setGury(canvas, this);
   }
@@ -598,6 +625,168 @@ window.$g = window.Gury = (function() {
       obj._gury.visible = !obj._gury.visible;
     });
   };
+  
+  /*
+   * Object Events
+   */
+  function inRange(x, y, object) {
+    var q = x - object.x;
+    var r = y - object.y;
+    
+    if (isDefined(object.size)) {
+      return q >= 0 && q < object.size && r >= 0 && r < object.size;
+    }
+    else if (isDefined(object.width, object.height)) {
+      return q >= 0 && q < object.width && r >= 0 && r < object.height;
+    }
+    
+    return false;
+  }
+  
+  // Encapsulates an object in a set or finds a set of objects matching a tag
+  function eventObjects(gury, object) {
+    var objects = new Set();
+    if (isString(object)) {
+      objects = gury._tags.find(object).getObjects();
+    }
+    else if (isDefined(object) && gury._objects.has(object)) {
+      objects.add(object);
+    }
+    return objects;
+  }
+  
+  // TODO Document event system fully
+  function setupEvents(gury) {
+    if (!isDefined(jQuery)) return;
+    
+    var canvas = $(gury.canvas);
+    
+    function triggerObjectsAt(gury, e, event) {
+      var objects = new Set();
+      var x = e.pageX - canvas.offset().left;
+      var y = e.pageY - canvas.offset().top;
+      
+      // TODO Replace this linear search with spatial indexing
+      gury._objects.each(function(ob) {
+        if (inRange(x, y, ob)) {
+          objects.add(ob);
+        }
+      });
+      
+      objects.each(function(ob) { gury.trigger(event, ob); });
+    }
+    
+    // Mouse Events
+    canvas.click(function(e) { triggerObjectsAt(gury, e, 'click'); });    
+    canvas.mousedown(function(e) { triggerObjectsAt(gury, e, 'mousedown'); });
+    canvas.mouseup(function(e) { triggerObjectsAt(gury, e, 'mouseup'); });
+    
+    
+    canvas.mousemove(function(e) { 
+      triggerObjectsAt(gury, e, 'mousemove');
+      // TODO: add mouseenter and mouseleave
+    });
+  }
+  
+  // TODO Document me
+  Gury.prototype.bind = function(object, event, closure) {
+    if (isDefined(object, event, closure)) {
+      var gury = this;
+      eventObjects(gury, object).each(function(ob) {
+        if (!isDefined(gury._events[event])) {
+          gury._events[event] = {};
+        }
+        
+        var h = ob._gury_hash;
+        if (!isDefined(gury._events[event][h])) {
+          gury._events[event][h] = [];
+        }
+        
+        gury._events[event][h].push(closure);
+      });
+    }
+    return this;
+  };
+  
+  // TODO Document me
+  Gury.prototype.unbind = function(object, event, closure) {
+    if (isDefined(object, event)) {
+      var gury = this;
+      eventObjects(gury, object).each(function(ob) {
+        var h = ob._gury_hash;
+        
+        if (!isDefined(gury._events[event])) {
+          return;
+        }
+        if (!isDefined(gury._events[event][h])) {
+          return;
+        }
+        
+        if (isDefined(closure)) {
+          for (var i = 0; i < gury._events[event][h].length; i++) {
+            if (gury._events[event][h][i] == closure) {
+              gury._events[event][h].splice(i, 1);
+              i--;
+            }
+          }
+        }
+        else {
+          gury._events[event][h] = [];
+        }
+      });
+    }
+    return this;
+  };
+  
+  // TODO Document me
+  Gury.prototype.trigger = function(event, object) {
+    if (isDefined(event, this._events[event], object)) {
+      var events = this._events[event];
+      var h = object._gury_hash;
+      var handlers = events[h];
+      for (var i = 0; i < handlers.length; i++) {
+        handlers[i].call(object);
+      }
+    }
+    return this;
+  };
+  
+  function eventFunction(event) {
+    return function(object, closure) {
+      if (isDefined(object)) {
+        if (isDefined(closure)) {
+          this.bind(object, event, closure);
+        }
+        else {
+          this.trigger(object, event);
+        }
+      }
+      return this;
+    };
+  }
+  
+  // TODO Document me
+  Gury.prototype.click = eventFunction('click');
+  
+  // TODO Document me
+  Gury.prototype.mousedown = eventFunction('mousedown');
+  
+  // TODO Document me
+  Gury.prototype.mouseup = eventFunction('mouseup');
+  
+  // TODO Document me
+  Gury.prototype.mouseenter = eventFunction('mouseenter');
+  
+  /*
+  TODO Definitely need better spatial indexing to make these efficient
+  
+  // TODO Document me
+  Gury.prototype.mouseleave = eventFunction('mouseleave');
+  
+  // TODO Document me
+  Gury.prototype.mousemove = eventFunction('mousemove');
+  */
+  
   
   /*
    * Public interface
