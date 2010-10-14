@@ -225,7 +225,7 @@ window.$g = window.Gury = (function() {
         }
       }
       
-      return this;
+      return object;
     };
     
     this.each = function(closure) {
@@ -243,6 +243,7 @@ window.$g = window.Gury = (function() {
           }
         }
       }
+      return this;
     };
   }
   
@@ -316,6 +317,7 @@ window.$g = window.Gury = (function() {
   
   TagSpace.prototype.remove = function(object) {
     // TODO Implement me
+    // Keep a list of all the objects removed so we can send them back to the Gury object
   };
   
   /*
