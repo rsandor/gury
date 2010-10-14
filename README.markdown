@@ -323,7 +323,7 @@ to the screen. Here is a quick example:
         }
     }).play(32);
 
-The `demos/tags.html` file contains a demo using this functionality.
+The `demos/tags.html` uses this functionality extensively.
 
 ### .clear()
 
