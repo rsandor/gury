@@ -409,7 +409,7 @@ window.$g = window.Gury = (function() {
     if (isDefined(object._gury)) {
       return;
     }
-    object._gury = { visible: true };
+    object._gury = { visible: true, paused: false };
   }
   
   Gury.prototype.add = function() {
@@ -468,6 +468,16 @@ window.$g = window.Gury = (function() {
     return this;
   };
   
+  Gury.prototype.update = function() {
+    var gury = this;
+    gury._objects.each(function(ob) {
+      if (isDefined(ob.update) && !ob._gury.paused) {
+        ob.update(gury);
+      }
+    });
+    return this;
+  };
+  
   Gury.prototype.draw = function() {
     this.clear();
     
@@ -476,6 +486,7 @@ window.$g = window.Gury = (function() {
       if (!ob._gury.visible) {
         return;
       }
+
       if (typeof ob == "function") {
         ob.call(gury, gury.ctx);
       }
@@ -491,6 +502,7 @@ window.$g = window.Gury = (function() {
    * Animation Controls
    */
   
+  // TODO Draw on call
   Gury.prototype.play = function(interval) {
     // Ignore multiple play attempts
     if (this._loop_interval != null) {
@@ -500,15 +512,32 @@ window.$g = window.Gury = (function() {
     var _gury = this;
     this._loop_interval = setInterval(function() {
       if (!_gury._paused) {
-        _gury.draw();
+        _gury.update().draw();
       }
     }, interval);
     return this;
   };
   
+  
   Gury.prototype.pause = function() {
-    this._paused = !this._paused;
-    return this;
+    if (arguments.length > 0) {
+      for (var i = 0; i < arguments.length; i++) {
+        var arg = arguments[i];
+        if (isString(arg)) {
+          this.each(arg, function(ob) {
+            ob._gury.paused = !ob._gury.paused;
+          });
+        }
+        else if (isDefined(arg._gury)) {
+          arg._gury.paused = !arg._gury.paused;
+        }
+      }
+      return this;
+    }
+    else {
+      this._paused = !this._paused;
+      return this;
+    }
   };
   
   Gury.prototype.stop = function() {

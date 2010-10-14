@@ -1,0 +1,85 @@
+<!--
+  gury - A jQuery inspired canvas utility library
+  By Ryan Sandor Richards
+-->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>pausing - By Ryan Sandor Richards</title>
+  </head>
+  <body style="font-family: helvetica; background-color: #444; color: #ddd; text-align: center">
+    
+    <h1>pausing</h1>
+    <p>By Ryan Sandor Richards</p>
+    
+    <div id="content"></div>
+    <div id="controls">
+      <input type="button" name="pause_red" value="Pause Red" id="pause_red">
+      <input type="button" name="pause_blue" value="Pause Blue" id="pause_blue">
+      <input type="button" name="pause_green" value="Pause Green" id="pause_green">
+      <input type="button" name="pause_but" value="Pause All But Blue" id="but">
+    </div>
+    
+    <!-- Nice little link back to the repo -->
+    <p><a href="http://github.com/rsandor/gury" style="color: white">Project on github</a></p>
+    
+    <!-- Add jQuery for load behaviors -->
+    <script type="text/javascript" charset="utf-8" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+    
+    <!-- Include the gury library -->
+    <script type="text/javascript" charset="utf-8" src="../gury.js"></script>
+    
+    <!-- Now script up a neato canvas scene! -->
+    <script type="text/javascript" charset="utf-8">
+    $(function() {
+      function Box(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        this.size = color == 'green' ? 32 : 64;
+        this.theta = 0;
+      }
+      
+      Box.prototype.update = function(gury) {
+        this.theta += (this.color == "red" ? -1 : 1) * Math.PI / 60;
+      };
+      
+      Box.prototype.draw = function(ctx) {
+        ctx.save();
+          ctx.translate(this.x, this.y);
+          ctx.rotate(this.theta);
+          ctx.fillStyle = this.color;
+          ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
+        ctx.restore();
+      };
+      
+      var green = new Box(128, 128, 'green');
+      
+      var g = $g().size(256, 256).background('black').place('#content').play(32)
+        .add('green', green)
+        .add('blue', new Box(64, 64, 'blue'))
+        .add('red', new Box(192, 64, 'red'))
+        .add('blue', new Box(192, 192, 'blue'))
+        .add('red', new Box(64, 192, 'red'));
+  
+      
+      $('input[type=button]').click(function() {
+        var color = this.id.split('_')[1];
+        
+        // Pause an individual object
+        if (color == "green") {
+          g.pause(green);
+        }
+        // Pause using tags
+        else if (color == "red" || color == "blue") {
+          g.pause(color);
+        }
+        // Pause multiple items at a time
+        else if (this.id == "but") {
+          g.pause(green, 'red');
+        }
+      });
+    });
+    </script>
+  </body>
+</body>

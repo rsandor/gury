@@ -301,6 +301,30 @@ Drawing and Animation Methods
 
 Renders the scene by drawing all of the added objects in order on the canvas.
 
+### .update()
+
+Updates objects that have a `.update()` method. This method is called before `.draw()`
+for animations via the `.play()` method. This allows for you to separate out your 
+update and rendering code and ensure updates have been performed before they are rendered
+to the screen. Here is a quick example:
+
+    $g('my_canvas').size(64, 64).add({
+        theta: 0,
+        update: function() {
+            this.theta += Math.PI / 60;
+        },
+        draw: function() {
+            ctx.save();
+                ctx.translate(64, 64);
+                ctx.rotate(this.theta);
+                ctx.fillStyle = 'red';
+                ctx.fillRect(-16, -16, 32, 32);
+            ctx.restore();
+        }
+    }).play(32);
+
+The `demos/tags.html` file contains a demo using this functionality.
+
 ### .clear()
 
 Clears the canvas (does *not* remove any objects bound to the Gury instance).
@@ -314,7 +338,19 @@ or rotation on the screen as the animation plays.
 
 ### .pause()
 
-Pauses and un-pauses a running gury animation.
+Toggles updates and rendering for the canvas itself. Individually paused objects will not be
+toggled back into motion by calling `.pause()` with no arguments. For more on pausing objects
+see `.pause(object)` and `.pause(tag)` below.
+
+### .pause(object)
+
+Toggles updates for a single object in the canvas. See `demos/pausing.html` for an
+example of how to use this.
+
+### .pause(tag)
+
+Toggles updates for all objects with the given tag. Again, see `demos/pausing.html` for an
+example of how to use this.
 
 ### .stop()
 
