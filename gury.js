@@ -502,17 +502,20 @@ window.$g = window.Gury = (function() {
    * Animation Controls
    */
   
-  // TODO Draw on call
   Gury.prototype.play = function(interval) {
     // Ignore multiple play attempts
     if (this._loop_interval != null) {
       return this;
     }
-      
-    var _gury = this;
+  
+    // Immediately render the scene
+    this.draw();
+    
+    // Start the rendering / update loop  
+    var gury = this;
     this._loop_interval = setInterval(function() {
-      if (!_gury._paused) {
-        _gury.update().draw();
+      if (!gury._paused) {
+        gury.update().draw();
       }
     }, interval);
     return this;
