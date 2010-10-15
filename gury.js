@@ -562,10 +562,55 @@ window.$g = window.Gury = (function() {
       }
       return objects;
     }
-     
+    
+    // Adapted from: http://www.quirksmode.org/js/findpos.html
+    function getOffset(object) {
+      var left = 0, top = 0;
+      if (object.offsetParent) {
+        while (object) {
+          left += object.offsetLeft;
+          top += object.offsetTop;
+          object = object.offsetParent;
+        }
+      }
+      return {left:left, top:top};
+    }
+    
+    function triggerObjectsAt(gury, e, event) {
+      if (isDefined(gury._events[event])) {
+        var offset = getOffset(gury.canvas);
+        var x = e.pageX - offset.left;
+        var y = e.pageY - offset.top;
+
+        // TODO Replace with spatial indexing lookup
+        gury._events[event].each(function(entry) {
+          if (inRange(x, y, entry.target)) {
+            gury.trigger(event, entry.target, e);
+          }
+        });
+      }
+    }
+    
+    /*
+     * Determines if an event can be bound to an object.
+     * Specifically, for mouse events, this determines if
+     * the object contains the required members in order
+     * to work with the event system and throws an exception
+     * if the object does not.
+     */
+    function canBind(object, event) {
+      // Check for mouse event requirements
+      if (event == 'click' || event.match(/^mouse.+$/)) {
+        if (!isDefined(object.x, object.y) || !(isDefined(object.size) || isDefined(object.width, object.height))) {
+          GuryException('bind() - Cannot bind mouse event to object without position and dimensions');
+        }
+      }
+      return true;
+    }
+    
     // TODO Document me
     Gury.prototype.bind = function(object, event, closure) {
-      if (isDefined(object, event, closure)) {
+      if (isDefined(object, event, closure) && canBind(object, event)) {
         var gury = this;
         var events = gury._events;
 
@@ -628,7 +673,8 @@ window.$g = window.Gury = (function() {
       }
       return this;
     };
-
+    
+    // Creates specific event methods for the Gury object itself
     function eventFunction(event) {
       return function(object, closure) {
         if (isDefined(object)) {
@@ -642,7 +688,7 @@ window.$g = window.Gury = (function() {
         return this;
       };
     }
-
+    
     // TODO Document me
     Gury.prototype.click = eventFunction('click');
 
@@ -654,37 +700,28 @@ window.$g = window.Gury = (function() {
 
     // TODO Document me
     Gury.prototype.mousemove = eventFunction('mousemove');
-
+    
     return {
       init: function(gury) {
-        // TODO Remove reliance on jQuery
-        if (!isDefined(jQuery)) return;
-
         gury._events = {};
-        var canvas = $(gury.canvas);
-
-        function triggerObjectsAt(gury, e, event) {
-          if (isDefined(gury._events[event])) {
-            // TODO Remove reliance on jQuery
-            var x = e.pageX - canvas.offset().left;
-            var y = e.pageY - canvas.offset().top;
-
-            // TODO Replace with spatial indexing lookup
-            gury._events[event].each(function(entry) {
-              if (inRange(x, y, entry.target)) {
-                gury.trigger(event, entry.target, e);
-              }
-            });
-          }
-        }
+        var canvas = gury.canvas;
 
         // Mouse Events
-        canvas.click(function(e) { triggerObjectsAt(gury, e, 'click'); });    
-        canvas.mousedown(function(e) { triggerObjectsAt(gury, e, 'mousedown'); });
-        canvas.mouseup(function(e) { triggerObjectsAt(gury, e, 'mouseup'); });
-        canvas.mousemove(function(e) { 
+        canvas.onclick = function(e) {
+          triggerObjectsAt(gury, e, 'click');
+        };
+        
+        canvas.onmousedown = function(e) {
+          triggerObjectsAt(gury, e, 'mousedown');
+        };
+        
+        canvas.onmouseup = function(e) {
+          triggerObjectsAt(gury, e, 'mouseup');
+        };
+        
+        canvas.onmousemove = function(e) {
           triggerObjectsAt(gury, e, 'mousemove');
-        });
+        };
       }
     };
   })();
