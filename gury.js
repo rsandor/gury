@@ -84,7 +84,6 @@ window.$g = window.Gury = (function() {
    * Hash and Dynamic Set Structures
    */
   var nextHash = 0;
-  
   function Hashtable() {
     var table = this.table = {};
     
@@ -185,92 +184,94 @@ window.$g = window.Gury = (function() {
   
   TagSpace.TAG_REGEX = /^[a-zA-Z0-9_]+(\.[a-zA-Z0-9_]+)*$/;
   
-  TagSpace.prototype.hasChild = function(name) {
-    return isObject(this._children[name]);
-  };
-  
-  TagSpace.prototype.addChild = function(name) {
-    return this._children[name] = new TagSpace(name);
-  };
-  
-  TagSpace.prototype.getChild = function(name) {
-    return this._children[name];
-  };
-  
-  TagSpace.prototype.getObjects = function() {
-    return this._objects;
-  };
-  
-  TagSpace.prototype.find = function(tag) {
-    if (!tag.match(TagSpace.TAG_REGEX)) {
-      return null;
-    }
+  TagSpace.prototype = {
+    hasChild: function(name) {
+      return isObject(this._children[name]);
+    },
     
-    var currentSpace = this;
-    var tags = tag.split('.');
-    var lastName = tags[tags.length - 1];
+    addChild: function(name) {
+      return this._children[name] = new TagSpace(name);
+    },
     
-    for (var i = 0; i < tags.length; i++) {
-      if (!currentSpace.hasChild(tags[i]))
+    getChild: function(name) {
+      return this._children[name];
+    },
+    
+    getObjects: function() {
+      return this._objects;
+    },
+    
+    find: function(tag) {
+      if (!tag.match(TagSpace.TAG_REGEX)) {
         return null;
-      currentSpace = currentSpace.getChild(tags[i]);
-    }
-    
-    return currentSpace;
-  };
-  
-  TagSpace.prototype.add = function(tag, object) {
-    if (!tag.match(TagSpace.TAG_REGEX)) {
-      return null;
-    }
-    
-    var currentSpace = this;
-    var tags = tag.split('.');
-    var lastName = tags[tags.length - 1];
-    
-    for (var i = 0; i < tags.length; i++) {
-      if (currentSpace.hasChild(tags[i])) {
+      }
+
+      var currentSpace = this;
+      var tags = tag.split('.');
+      var lastName = tags[tags.length - 1];
+
+      for (var i = 0; i < tags.length; i++) {
+        if (!currentSpace.hasChild(tags[i]))
+          return null;
         currentSpace = currentSpace.getChild(tags[i]);
       }
-      else {
-        currentSpace = currentSpace.addChild(tags[i]);
-      }
-    }
-  
-    currentSpace._objects.add(object);
-    
-    return object;
-  };
-  
-  TagSpace.prototype.clearObjects = function() {
-    this._objects = new Set();
-  };
-  
-  TagSpace.prototype._remove_object = function(o) {
-    this._objects.remove(o);
-    for (var k in this._children) {
-      var child = this._children[k];
-      child._remove_object(o);
-    }
-  };
-  
-  TagSpace.prototype.remove = function(q) {
-    var removed = new Set();
 
-    if (isString(q)) {
-      var space = this.find(q);
-      if (!space) {
-        return removed;
-      }
-      removed = space.getObjects();
-      space.clearObjects();
-    }
-    else {
-      this._remove_object(q);
-      removed.add(q);
-    }
+      return currentSpace;
+    },
     
-    return removed;
+    add: function(tag, object) {
+      if (!tag.match(TagSpace.TAG_REGEX)) {
+        return null;
+      }
+
+      var currentSpace = this;
+      var tags = tag.split('.');
+      var lastName = tags[tags.length - 1];
+
+      for (var i = 0; i < tags.length; i++) {
+        if (currentSpace.hasChild(tags[i])) {
+          currentSpace = currentSpace.getChild(tags[i]);
+        }
+        else {
+          currentSpace = currentSpace.addChild(tags[i]);
+        }
+      }
+
+      currentSpace._objects.add(object);
+
+      return object;
+    },
+    
+    clearObjects: function() {
+      this._objects = new Set();
+    },
+    
+    _remove_object: function(o) {
+      this._objects.remove(o);
+      for (var k in this._children) {
+        var child = this._children[k];
+        child._remove_object(o);
+      }
+    },
+    
+    remove: function(q) {
+      var removed = new Set();
+
+      if (isString(q)) {
+        var space = this.find(q);
+        if (!space) {
+          return removed;
+        }
+        removed = space.getObjects();
+        space.clearObjects();
+      }
+      else {
+        this._remove_object(q);
+        removed.add(q);
+      }
+
+      return removed;
+    }
   };
   
   /*
