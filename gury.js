@@ -528,7 +528,7 @@ window.$g = window.Gury = (function() {
       }
 
       if (typeof ob == "function") {
-        ob.call(gury, gury.ctx);
+        ob.call(gury, gury.ctx, gury.canvas);
       }
       else if (typeof ob == "object" && typeof ob.draw != "undefined") {
         ob.draw(gury.ctx, gury.canvas);
