@@ -1,0 +1,90 @@
+<!--
+  gury - A jQuery inspired canvas utility library
+  By Ryan Sandor Richards
+-->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>events - By Ryan Sandor Richards</title>
+    <style type="text/css" media="screen">
+      #controls div {
+        display: inline-block;
+        padding: 5px;
+        margin-top: 10px;
+        background-color: #232;
+        color: #888;
+      }
+      #controls div.active {
+        background-color: green;
+        color: white;
+      }
+    </style>
+  </head>
+  <body style="font-family: helvetica; background-color: #444; color: #ddd; text-align: center">
+    
+    <h1>events</h1>
+    <p>By Ryan Sandor Richards</p>
+    
+    <div id="content"></div>
+    <div id="controls">
+      <div id="mousedown">Mouse Down</div>
+      <div id="mouseup">Mouse Up</div>
+      <div id="click">Mouse Click</div>
+      <div id="mousemove">Mouse Move</div>
+    </div>
+    
+    <!-- Nice little link back to the repo -->
+    <p><a href="http://github.com/rsandor/gury" style="color: white">Project on github</a></p>
+    
+    <!-- Add jQuery for load behaviors -->
+    <script type="text/javascript" charset="utf-8" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+    
+    <!-- Include the gury library -->
+    <script type="text/javascript" charset="utf-8" src="../gury.js"></script>
+    
+    <!-- Now script up a neato canvas scene! -->
+    <script type="text/javascript" charset="utf-8">
+    $(function() {
+      var target = {
+        color: 'red',
+        x: 40, y:40, size: 120,
+        draw: function(ctx) {
+          ctx.fillStyle = this.color;
+          x = this.x;
+          y = this.y;
+          size = this.size;
+          ctx.fillRect(x, y, size, size);
+        }
+      };
+      
+      var timeout = null;
+      
+      function handler(name) {
+        return function() {
+          $('#'+name).addClass('active');
+          
+          function trigger() {
+            $('#'+name).removeClass('active');
+          }
+          
+          if (name == "mousemove") {
+            clearTimeout(timeout);
+            timeout = setTimeout(trigger, 250);
+          }
+          else {
+            setTimeout(trigger, 250);
+          }
+        };
+      }
+      
+      gury = $g().size(200, 200).background('black')
+        .add(target)
+        .click(target, handler('click'))
+        .mousedown(target, handler('mousedown'))
+        .mouseup(target, handler('mouseup'))
+        .mousemove(target, handler('mousemove'))
+      .place('#content').play(32);
+    });
+    </script>
+  </body>
+</html>
