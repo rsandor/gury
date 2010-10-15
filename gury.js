@@ -83,156 +83,73 @@ window.$g = window.Gury = (function() {
   /*
    * Hash and Dynamic Set Structures
    */
-  function HashTable(ord) {
-    // TODO Implement me... if needed
+  var nextHash = 0;
+  
+  function Hashtable() {
+    var table = this.table = {};
+    
+    function hash(object) {
+      if (isString(object)) {
+        return object;
+      }
+      if (!isDefined(object._gury_hash)) {
+        object._gury_hash = nextHash++;
+      }
+      return object._gury_hash;
+    }
+    
+    this.set = function(key, value) {
+      var h = hash(key);
+      table[h] = value;
+    };
+    
+    this.has = function(key) {
+      var h = hash(key);
+      return isDefined(table[h]);
+    };
+    
+    this.get = function(key) {
+      var h = hash(key);
+      return table[h];
+    };
+    
+    this.remove = function(key) {
+      var h = hask(key);
+      delete table[h];
+    };
+    
+    this.each = function(closure) {
+      for (var h in table) {
+        closure(table[h]);
+      }
+      return this;
+    };
   }
    
   function Set(ord) {
-    var buckets = {};
-    var ordered = ord ? [] : false;
-    
-    /*
-     * MurmurHash adapted from: http://gist.github.com/588423 (raycmorgan)
-     */
-    function UInt32(str, pos) {
-      return (str.charCodeAt(pos++)) +
-             (str.charCodeAt(pos++) << 8) +
-             (str.charCodeAt(pos++) << 16) +
-             (str.charCodeAt(pos) << 24);
-    }
-
-    function UInt16(str, pos) {
-      return (str.charCodeAt(pos++)) +
-             (str.charCodeAt(pos++) << 8);
-    }
-
-    function Umul32(n, m) {
-      n = n | 0;
-      m = m | 0;
-      var nlo = n & 0xffff;
-      var nhi = n >>> 16;
-      var res = ((nlo * m) + (((nhi * m) & 0xffff) << 16)) | 0;
-      return res;
-    }
-    
-    function doHash(str, seed) {
-      var m = 0x5bd1e995;
-      var r = 24;
-      var h = seed ^ str.length;
-      var length = str.length;
-      var currentIndex = 0;
-
-      while (length >= 4) {
-        var k = UInt32(str, currentIndex);
-
-        k = Umul32(k, m);
-        k ^= k >>> r;
-        k = Umul32(k, m);
-
-        h = Umul32(h, m);
-        h ^= k;
-
-        currentIndex += 4;
-        length -= 4;
-      }
-
-      switch (length) {
-      case 3:
-        h ^= UInt16(str, currentIndex);
-        h ^= str.charCodeAt(currentIndex + 2) << 16;
-        h = Umul32(h, m);
-        break;
-
-      case 2:
-        h ^= UInt16(str, currentIndex);
-        h = Umul32(h, m);
-        break;
-
-      case 1:
-        h ^= str.charCodeAt(currentIndex);
-        h = Umul32(h, m);
-        break;
-      }
-
-      h ^= h >>> 13;
-      h = Umul32(h, m);
-      h ^= h >>> 15;
-
-      return h >>> 0;
-    }
-    
-    function hash(object) {
-      if (isDefined(object._gury_hash)) {
-        return object._gury_hash;
-      }
-      
-      var json = "";
-      if (isFunction(object)) {
-        var sample = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        for (var i = 0; i < 40; i++) {
-          var k = sample.length * Math.random() | 0;
-          json += sample.substring(k, k+1);
-        }
-      }
-      else {
-        json = JSON.stringify(object);
-      }
-      
-      return object._gury_hash = doHash(json, json.length);
-    }
+    var table = this.table = new Hashtable();
+    var ordered = this.ordered = ord ? [] : false;
     
     this.has = function(object) {
-      var h = hash(object);
-      if (isDefined(buckets[h])) {
-        var bucket = buckets[h];
-        for (var i = 0; i < bucket.length; i++) {
-          if (bucket[i] == object) {
-            return true;
-          }
-        }
-      }
-      return false;
-    };
-    
-    // Returns the set of objects in the bucket with the given hash
-    this.get = function(h) {
-      var set = new Set();
-      if (isDefined(buckets[h])) {
-        for (var i = 0; i < buckets[h].length; i++) {
-          set.add(buckets[h][i]);
-        }
-      }
-      return set;
+      return table.has(object);
     };
     
     this.add = function(object) {
-      if (this.has(object)) {
+      if (table.has(object)) {
         return this;
       }
-      
-      var h = hash(object);
-      if (!isDefined(buckets[h])) {
-        buckets[h] = [];
-      }
-      
-      buckets[h].push(object);
-      
       if (ordered) {
         ordered.push(object);
       }
-      
+      table.set(object, object);
       return this;
     };
 
     this.remove = function(object) {
-      if (!this.has(object)) {
-        return this;
+      if (!table.has(object)) {
+        return null;
       }
-      
-      var h = hash(object);
-      var bucket = buckets[h];
-      
-      if (ordered) {
+      else if (ordered) {
         for (var k = 0; k < ordered.length; k++) {
           if (ordered[k] == object) {
             ordered.splice(k, 1);
@@ -240,31 +157,18 @@ window.$g = window.Gury = (function() {
           }
         }
       }
-      
-      for (var i = 0; i < bucket.length; i++) {
-        if (bucket[i] == object) {
-          bucket.splice(i, 1);
-          return this;
-        }
-      }
-      
+      table.remove(object);
       return object;
     };
     
     this.each = function(closure) {
-      var i;
       if (ordered) {
-        for (i = 0; i < ordered.length; i++) {
+        for (var i = 0; i < ordered.length; i++) {
           closure(ordered[i], i);
         }
       }
       else {
-        for (var h in buckets) {
-          var bucket = buckets[h];
-          for (i = 0; i < bucket.length; i++) {
-            closure(bucket[i], i);
-          }
-        }
+        table.each(closure);
       }
       return this;
     };
@@ -666,7 +570,7 @@ window.$g = window.Gury = (function() {
       var x = e.pageX - canvas.offset().left;
       var y = e.pageY - canvas.offset().top;
       
-      // TODO Replace this linear search with spatial indexing
+      // TODO Replace with spatial indexing lookup
       gury._objects.each(function(ob) {
         if (inRange(x, y, ob)) {
           objects.add(ob);
