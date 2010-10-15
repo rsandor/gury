@@ -194,6 +194,13 @@ window.$g = window.Gury = (function() {
       return false;
     };
     
+    this.__defineGetter__("length", function() {
+      if(ordered) {
+	return ordered.length;
+      }
+      return buckets.length;
+    });
+	
     // Returns the set of objects in the bucket with the given hash
     this.get = function(h) {
       var set = new Set();
@@ -228,7 +235,6 @@ window.$g = window.Gury = (function() {
       if (!this.has(object)) {
         return this;
       }
-      
       var h = hash(object);
       var bucket = buckets[h];
       
@@ -255,17 +261,24 @@ window.$g = window.Gury = (function() {
       var i;
       if (ordered) {
         for (i = 0; i < ordered.length; i++) {
-          closure(ordered[i], i);
+          closure.call(this, ordered[i], i);
         }
       }
       else {
         for (var h in buckets) {
           var bucket = buckets[h];
           for (i = 0; i < bucket.length; i++) {
-            closure(bucket[i], i);
+            closure.call(this, bucket[i], i);
           }
         }
       }
+      return this;
+    };
+	
+    this.clear = function() {
+      this.each(function(element, index) {
+        this.remove(element);
+      });
       return this;
     };
   }
