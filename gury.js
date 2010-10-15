@@ -81,7 +81,7 @@ window.$g = window.Gury = (function() {
   }
   
   /*
-   * Hash and Dynamic Set Structures
+   * Hashtable Structure (for object -> object hashing)
    */
   var nextHash = 0;
   function Hashtable() {
@@ -119,12 +119,15 @@ window.$g = window.Gury = (function() {
     
     this.each = function(closure) {
       for (var h in table) {
-        closure(table[h]);
+        closure(table[h], h);
       }
       return this;
     };
   }
-   
+  
+  /*
+   * Dynamic Set Structure
+   */ 
   function Set(ord) {
     var table = this.table = new Hashtable();
     var ordered = this.ordered = ord ? [] : false;
@@ -174,110 +177,110 @@ window.$g = window.Gury = (function() {
   }
   
   /*
-   * Tag Namespace Object
+   * TagSpace Structure
    */
-  function TagSpace(objects) {
+  function TagSpace() {
     this.name = name;
     this._children = {};
     this._objects = new Set();
   }
-  
-  TagSpace.TAG_REGEX = /^[a-zA-Z0-9_]+(\.[a-zA-Z0-9_]+)*$/;
-  
-  TagSpace.prototype = {
-    hasChild: function(name) {
-      return isObject(this._children[name]);
-    },
+  TagSpace.prototype = (function() {
+    var TAG_REGEX = /^[a-zA-Z0-9_]+(\.[a-zA-Z0-9_]+)*$/;
     
-    addChild: function(name) {
-      return this._children[name] = new TagSpace(name);
-    },
-    
-    getChild: function(name) {
-      return this._children[name];
-    },
-    
-    getObjects: function() {
-      return this._objects;
-    },
-    
-    find: function(tag) {
-      if (!tag.match(TagSpace.TAG_REGEX)) {
-        return null;
-      }
+    return {
+      hasChild: function(name) {
+        return isObject(this._children[name]);
+      },
 
-      var currentSpace = this;
-      var tags = tag.split('.');
-      var lastName = tags[tags.length - 1];
+      addChild: function(name) {
+        return this._children[name] = new TagSpace(name);
+      },
 
-      for (var i = 0; i < tags.length; i++) {
-        if (!currentSpace.hasChild(tags[i]))
+      getChild: function(name) {
+        return this._children[name];
+      },
+
+      getObjects: function() {
+        return this._objects;
+      },
+
+      find: function(tag) {
+        if (!tag.match(TAG_REGEX)) {
           return null;
-        currentSpace = currentSpace.getChild(tags[i]);
-      }
+        }
 
-      return currentSpace;
-    },
-    
-    add: function(tag, object) {
-      if (!tag.match(TagSpace.TAG_REGEX)) {
-        return null;
-      }
+        var currentSpace = this;
+        var tags = tag.split('.');
+        var lastName = tags[tags.length - 1];
 
-      var currentSpace = this;
-      var tags = tag.split('.');
-      var lastName = tags[tags.length - 1];
-
-      for (var i = 0; i < tags.length; i++) {
-        if (currentSpace.hasChild(tags[i])) {
+        for (var i = 0; i < tags.length; i++) {
+          if (!currentSpace.hasChild(tags[i]))
+            return null;
           currentSpace = currentSpace.getChild(tags[i]);
         }
+
+        return currentSpace;
+      },
+
+      add: function(tag, object) {
+        if (!tag.match(TagSpace.TAG_REGEX)) {
+          return null;
+        }
+
+        var currentSpace = this;
+        var tags = tag.split('.');
+        var lastName = tags[tags.length - 1];
+
+        for (var i = 0; i < tags.length; i++) {
+          if (currentSpace.hasChild(tags[i])) {
+            currentSpace = currentSpace.getChild(tags[i]);
+          }
+          else {
+            currentSpace = currentSpace.addChild(tags[i]);
+          }
+        }
+
+        currentSpace._objects.add(object);
+
+        return object;
+      },
+
+      clearObjects: function() {
+        this._objects = new Set();
+      },
+
+      _remove_object: function(o) {
+        this._objects.remove(o);
+        for (var k in this._children) {
+          var child = this._children[k];
+          child._remove_object(o);
+        }
+      },
+
+      remove: function(q) {
+        var removed = new Set();
+
+        if (isString(q)) {
+          var space = this.find(q);
+          if (!space) {
+            return removed;
+          }
+          removed = space.getObjects();
+          space.clearObjects();
+        }
         else {
-          currentSpace = currentSpace.addChild(tags[i]);
+          this._remove_object(q);
+          removed.add(q);
         }
-      }
 
-      currentSpace._objects.add(object);
-
-      return object;
-    },
-    
-    clearObjects: function() {
-      this._objects = new Set();
-    },
-    
-    _remove_object: function(o) {
-      this._objects.remove(o);
-      for (var k in this._children) {
-        var child = this._children[k];
-        child._remove_object(o);
+        return removed;
       }
-    },
-    
-    remove: function(q) {
-      var removed = new Set();
-
-      if (isString(q)) {
-        var space = this.find(q);
-        if (!space) {
-          return removed;
-        }
-        removed = space.getObjects();
-        space.clearObjects();
-      }
-      else {
-        this._remove_object(q);
-        removed.add(q);
-      }
-
-      return removed;
-    }
-  };
+    };
+  })();
   
   /*
    * Core Gury Class
    */
-  
   function Gury(canvas) {
     if (canvas == null) {
       canvas = document.createElement('canvas');
@@ -298,10 +301,8 @@ window.$g = window.Gury = (function() {
     this._paused = false;
     this._loop_interval = null;
   
-    // These are for event handling
-    this._events = {};
-    setupEvents(this);
-  
+    Events.init(this);
+    
     return setGury(canvas, this);
   }
   
@@ -321,7 +322,6 @@ window.$g = window.Gury = (function() {
   /*
    * Canvas style methods
    */
-  
   Gury.prototype.size = function(w, h) {
     this.canvas.width = w;
     this.canvas.height = h;
@@ -531,172 +531,167 @@ window.$g = window.Gury = (function() {
     });
   };
   
-  /*
+  /* 
    * Object Events
    */
-  function inRange(x, y, object) {
-    var q = x - object.x;
-    var r = y - object.y;
-    
-    if (isDefined(object.size)) {
-      return q >= 0 && q < object.size && r >= 0 && r < object.size;
-    }
-    else if (isDefined(object.width, object.height)) {
-      return q >= 0 && q < object.width && r >= 0 && r < object.height;
-    }
-    
-    return false;
-  }
   
-  // Encapsulates an object in a set or finds a set of objects matching a tag
-  function eventObjects(gury, object) {
-    var objects = new Set();
-    if (isString(object)) {
-      objects = gury._tags.find(object).getObjects();
+  // TODO Document event system fully 
+  var Events = (function() {
+    function inRange(x, y, object) {
+      var q = x - object.x;
+      var r = y - object.y;
+
+      if (isDefined(object.size)) {
+        return q >= 0 && q < object.size && r >= 0 && r < object.size;
+      }
+      else if (isDefined(object.width, object.height)) {
+        return q >= 0 && q < object.width && r >= 0 && r < object.height;
+      }
+
+      return false;
     }
-    else if (isDefined(object) && gury._objects.has(object)) {
-      objects.add(object);
-    }
-    return objects;
-  }
-  
-  // TODO Document event system fully
-  function setupEvents(gury) {
-    if (!isDefined(jQuery)) return;
-    
-    var canvas = $(gury.canvas);
-    
-    function triggerObjectsAt(gury, e, event) {
+     
+    // Encapsulates an object in a set or finds a set of objects matching a tag
+    function objects(gury, query) {
       var objects = new Set();
-      var x = e.pageX - canvas.offset().left;
-      var y = e.pageY - canvas.offset().top;
-      
-      // TODO Replace with spatial indexing lookup
-      gury._objects.each(function(ob) {
-        if (inRange(x, y, ob)) {
-          objects.add(ob);
-        }
-      });
-      
-      objects.each(function(ob) { gury.trigger(event, ob); });
+      if (isString(query)) {
+        objects = gury._tags.find(query).getObjects();
+      }
+      else if (isDefined(query) && gury._objects.has(query)) {
+        objects.add(query);
+      }
+      return objects;
     }
-    
-    // Mouse Events
-    canvas.click(function(e) { triggerObjectsAt(gury, e, 'click'); });    
-    canvas.mousedown(function(e) { triggerObjectsAt(gury, e, 'mousedown'); });
-    canvas.mouseup(function(e) { triggerObjectsAt(gury, e, 'mouseup'); });
-    
-    
-    canvas.mousemove(function(e) { 
-      triggerObjectsAt(gury, e, 'mousemove');
-      // TODO: add mouseenter and mouseleave
-    });
-  }
-  
-  // TODO Document me
-  Gury.prototype.bind = function(object, event, closure) {
-    if (isDefined(object, event, closure)) {
-      var gury = this;
-      eventObjects(gury, object).each(function(ob) {
-        if (!isDefined(gury._events[event])) {
-          gury._events[event] = {};
-        }
-        
-        var h = ob._gury_hash;
-        if (!isDefined(gury._events[event][h])) {
-          gury._events[event][h] = [];
-        }
-        
-        gury._events[event][h].push(closure);
-      });
-    }
-    return this;
-  };
-  
-  // TODO Document me
-  Gury.prototype.unbind = function(object, event, closure) {
-    if (isDefined(object, event)) {
-      var gury = this;
-      eventObjects(gury, object).each(function(ob) {
-        var h = ob._gury_hash;
-        
-        if (!isDefined(gury._events[event])) {
-          return;
-        }
-        if (!isDefined(gury._events[event][h])) {
-          return;
-        }
-        
-        if (isDefined(closure)) {
-          for (var i = 0; i < gury._events[event][h].length; i++) {
-            if (gury._events[event][h][i] == closure) {
-              gury._events[event][h].splice(i, 1);
-              i--;
+     
+    // TODO Document me
+    Gury.prototype.bind = function(object, event, closure) {
+      if (isDefined(object, event, closure)) {
+        var gury = this;
+        var events = gury._events;
+
+        objects(gury, object).each(function(ob) {
+          if (!isDefined(events[event])) {
+            events[event] = new Hashtable();
+          }
+          if (!events[event].has(ob)) {
+            events[event].set(ob, {
+              target: ob,
+              handlers: []
+            });
+          }
+          events[event].get(ob).handlers.push(closure);
+        });
+      }
+      return this;
+    };
+
+    // TODO Document me
+    Gury.prototype.unbind = function(object, event, closure) {
+      if (isDefined(object, event)) {
+        var gury = this;
+        var events = gury._events;
+
+        objects(gury, object).each(function(ob) {
+          if (!isDefined(events[event])) {
+            return;
+          }
+          if (!events[event].has(ob)) {
+            return;
+          }
+
+          if (isDefined(closure)) {
+            var handlers = events[event].get(ob).handlers;
+            for (var i = 0; i < handlers.length; i++) {
+              if (handlers[i] == closure) {
+                handlers.splice(i, 1);
+                break;
+              }
             }
           }
-        }
-        else {
-          gury._events[event][h] = [];
-        }
-      });
-    }
-    return this;
-  };
-  
-  // TODO Document me
-  Gury.prototype.trigger = function(event, object) {
-    if (isDefined(event, this._events[event], object)) {
-      var events = this._events[event];
-      var h = object._gury_hash;
-      var handlers = events[h];
-      for (var i = 0; i < handlers.length; i++) {
-        handlers[i].call(object);
+          else {
+            events[event].remove(ob);
+          }
+        });
       }
-    }
-    return this;
-  };
-  
-  function eventFunction(event) {
-    return function(object, closure) {
-      if (isDefined(object)) {
-        if (isDefined(closure)) {
-          this.bind(object, event, closure);
-        }
-        else {
-          this.trigger(object, event);
+      return this;
+    };
+
+    // TODO Document me
+    Gury.prototype.trigger = function(event, object, e) {
+      if (isDefined(event, this._events[event], object)) {
+        if (this._events[event].has(object)) {
+          var handlers = this._events[event].get(object).handlers;
+          for (var i = 0; i < handlers.length; i++) {
+            handlers[i].call(object, e);
+          }
         }
       }
       return this;
     };
-  }
-  
-  // TODO Document me
-  Gury.prototype.click = eventFunction('click');
-  
-  // TODO Document me
-  Gury.prototype.mousedown = eventFunction('mousedown');
-  
-  // TODO Document me
-  Gury.prototype.mouseup = eventFunction('mouseup');
-  
-  // TODO Document me
-  Gury.prototype.mouseenter = eventFunction('mouseenter');
-  
-  /*
-  TODO Definitely need better spatial indexing to make these efficient
-  
-  // TODO Document me
-  Gury.prototype.mouseleave = eventFunction('mouseleave');
-  
-  // TODO Document me
-  Gury.prototype.mousemove = eventFunction('mousemove');
-  */
-  
+
+    function eventFunction(event) {
+      return function(object, closure) {
+        if (isDefined(object)) {
+          if (isDefined(closure)) {
+            this.bind(object, event, closure);
+          }
+          else {
+            this.trigger(object, event);
+          }
+        }
+        return this;
+      };
+    }
+
+    // TODO Document me
+    Gury.prototype.click = eventFunction('click');
+
+    // TODO Document me
+    Gury.prototype.mousedown = eventFunction('mousedown');
+
+    // TODO Document me
+    Gury.prototype.mouseup = eventFunction('mouseup');
+
+    // TODO Document me
+    Gury.prototype.mousemove = eventFunction('mousemove');
+
+    return {
+      init: function(gury) {
+        // TODO Remove reliance on jQuery
+        if (!isDefined(jQuery)) return;
+
+        gury._events = {};
+        var canvas = $(gury.canvas);
+
+        function triggerObjectsAt(gury, e, event) {
+          if (isDefined(gury._events[event])) {
+            // TODO Remove reliance on jQuery
+            var x = e.pageX - canvas.offset().left;
+            var y = e.pageY - canvas.offset().top;
+
+            // TODO Replace with spatial indexing lookup
+            gury._events[event].each(function(entry) {
+              if (inRange(x, y, entry.target)) {
+                gury.trigger(event, entry.target, e);
+              }
+            });
+          }
+        }
+
+        // Mouse Events
+        canvas.click(function(e) { triggerObjectsAt(gury, e, 'click'); });    
+        canvas.mousedown(function(e) { triggerObjectsAt(gury, e, 'mousedown'); });
+        canvas.mouseup(function(e) { triggerObjectsAt(gury, e, 'mouseup'); });
+        canvas.mousemove(function(e) { 
+          triggerObjectsAt(gury, e, 'mousemove');
+        });
+      }
+    };
+  })();
   
   /*
    * Public interface
    */
-  
   function GuryInterface(id) {
     return new Gury(id ? document.getElementById(id) : null);
   }
