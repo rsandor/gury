@@ -32,6 +32,8 @@
     <script type="text/javascript" charset="utf-8">
       $(function() {
         var gury = $g();
+        console.log(gury);
+        
         var board;
         var colors = ["#a00", "#0a0", "#00a"];
         
@@ -62,7 +64,7 @@
           remove(x, y-1, c);
         }
         
-        $(gury.size(256, 256).background('black').place('#content').add({
+        gury.size(256, 256).background('black').place('#content').add({
           draw: function(ctx) {
             for (var i = board.length - 1; i >= 0; i--) {
               for (var j = board.length - 1; j >= 0; j--) {
@@ -80,19 +82,19 @@
               }
             }
           }          
-        }).canvas).mousedown(function(e) {
-          var x = (e.pageX - $(this).offset().left) / 16 | 0;
-          var y = (e.pageY - $(this).offset().top) / 16 | 0;
-          var c = get(x, y);
-          
-          if (get(x+1, y) == c || get(x-1, y) == c || get(x, y+1) == c || get(x, y-1) == c)
-            remove(x, y, board[x][y]);
-          
-          gury.draw();
+        }).canvases.each(function(canvas) {
+          $(canvas).mousedown(function(e) {
+            var x = (e.pageX - $(this).offset().left) / 16 | 0;
+            var y = (e.pageY - $(this).offset().top) / 16 | 0;
+            var c = get(x, y);
+
+            if (get(x+1, y) == c || get(x-1, y) == c || get(x, y+1) == c || get(x, y-1) == c)
+              remove(x, y, board[x][y]);
+
+            gury.draw();
+          });
         });
-
-        gury.canvas.id = "gameboard";
-
+  
         reset();
 
         $('#reset').click(reset);
