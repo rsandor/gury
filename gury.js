@@ -73,35 +73,6 @@ window.$g = window.Gury = (function(window, jQuery) {
   }
   
   /*
-   * These handle mappings from Canvas DOM elements to Gury instances
-   * to allow for persistant states between calls to the module.
-   */
-  var guryId = 1;
-  var canvasToGury = {};
-  
-  function nextGuryId() { 
-    return "gury_id_" + (guryId++); 
-  }
-  
-  function getGury(canvas) {
-    if (!isString(canvas._gury_id) || !(canvasToGury[canvas._gury_id] instanceof Gury)) {
-      return null;
-    }
-    return canvasToGury[canvas._gury_id];
-  }
-  
-  function setGury(canvas, gury) {
-    if (typeof canvas._gury_id == "string") {
-      gury.id = canvas._gury_id;
-    }
-    else {
-      gury.id = canvas._gury_id = nextGuryId();
-    }
-
-    return canvasToGury[gury.id] = gury;
-  }
-  
-  /*
    * Hashtable Structure (for object -> object hashing)
    */
   var nextHash = 0;
@@ -415,8 +386,8 @@ window.$g = window.Gury = (function(window, jQuery) {
     }
     
     // Check for an existing mapping from the canvas to a Gury instance
-    if (getGury(canvas)) {
-      return getGury(canvas);
+    if (GuryInterface.getGury(canvas)) {
+      return GuryInterface.getGury(canvas);
     }
     
     // Otherwise create a new instance
@@ -431,7 +402,7 @@ window.$g = window.Gury = (function(window, jQuery) {
   
     Events.init(this);
     
-    return setGury(canvas, this);
+    return GuryInterface.setGury(canvas, this);
   }
   
   Gury.prototype.place = function(node) {
@@ -465,33 +436,33 @@ window.$g = window.Gury = (function(window, jQuery) {
    * Objects and Rendering
    */
   Gury.prototype.add = function() {
-    var tag = null, obj;
+    var tag = null, object;
     
     if (arguments.length < 1) {
       return this;
     }
     else if (arguments.length < 2) {
-      obj = arguments[0];
-      if (!isObjectOrFunction(obj)) {
+      object = arguments[0];
+      if (!isObjectOrFunction(object)) {
         return this;
       }
     }
     else {
       tag = arguments[0];
-      obj = arguments[1];
-      if (!isString(name) || !isObjectOrFunction(obj)) {
+      object = arguments[1];
+      if (!isString(name) || !isObjectOrFunction(object)) {
         return this;
       }
     }
 
     // Add the object to the global tag space (if a tag was provided)
     if (tag != null) {
-      this._tags.add(tag, obj);
+      this._tags.add(tag, object);
     }
     
     // We can apply new tags using add, but we don't want to keep track of the
     // object twice in the master rendering list...
-    if (this._objects.has(obj)) {
+    if (this._objects.has(object)) {
       return this;
     }
     
@@ -501,7 +472,7 @@ window.$g = window.Gury = (function(window, jQuery) {
     }
     
     // Add to the rendering list
-    this._objects.add(obj);
+    this._objects.add(object);
     
     return this;
   };
@@ -888,31 +859,61 @@ window.$g = window.Gury = (function(window, jQuery) {
   /*
    * Public interface
    */
-  function GuryInterface(q, options) {
-    var defaultOptions = {};
-    for (var k in defaultOptions) {
-      if (!isDefined(options[k])) {
-        options[k] = defaultOptions[k];
+  var GuryInterface = (function() {
+    var guryId = 1;
+    var canvasToGury = {};
+    
+    function nextGuryId() { 
+      return "gury_id_" + (guryId++); 
+    }
+    
+    function Interface(q, options) {
+      var defaultOptions = {};
+      for (var k in defaultOptions) {
+        if (!isDefined(options[k])) {
+          options[k] = defaultOptions[k];
+        }
       }
+
+      var object;
+      if (isString(q)) {
+        object = document.getElementById(q);
+      }
+      else {
+        object = null;
+      }
+
+      return new Gury(object, options);
     }
+
+    Interface.failWithException = function(b) {
+      if (!b) {
+        return _failWithException;
+      }
+      return _failWithException = b ? true : false;
+    };
     
-    var object;
-    if (isString(q)) {
-      object = document.getElementById(q);
-    }
-    else {
-      object = null;
-    }
+    // TODO Document me
+    Interface.getGury = function(canvas) {
+      if (!isString(canvas._gury_id) || !(canvasToGury[canvas._gury_id] instanceof Gury)) {
+        return null;
+      }
+      return canvasToGury[canvas._gury_id];
+    };
     
-    return new Gury(object, options);
-  }
-  
-  GuryInterface.failWithException = function(b) {
-    if (!b) {
-      return _failWithException;
-    }
-    return _failWithException = b ? true : false;
-  };
+    // TODO Document me
+    Interface.setGury = function(canvas, gury) {
+      if (typeof canvas._gury_id == "string") {
+        gury.id = canvas._gury_id;
+      }
+      else {
+        gury.id = canvas._gury_id = nextGuryId();
+      }  
+      return canvasToGury[gury.id] = gury;
+    };
+    
+    return Interface;
+  })(); 
   
   return GuryInterface;
 })(window, window.jQuery);
