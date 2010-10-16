@@ -464,14 +464,6 @@ window.$g = window.Gury = (function(window, jQuery) {
   /*
    * Objects and Rendering
    */
-  
-  function _annotate_object(object) {
-    if (isDefined(object._gury)) {
-      return;
-    }
-    object._gury = { visible: true, paused: false };
-  }
-  
   Gury.prototype.add = function() {
     var tag = null, obj;
     
@@ -504,7 +496,9 @@ window.$g = window.Gury = (function(window, jQuery) {
     }
     
     // Annotate the object with gury specific members
-    _annotate_object(obj);
+    if (!isDefined(object._gury)) {
+      object._gury = { visible: true, paused: false };
+    }
     
     // Add to the rendering list
     this._objects.add(obj);
