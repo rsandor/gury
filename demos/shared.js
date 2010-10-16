@@ -5,7 +5,43 @@
  * shared.js
  * Some nice shared classes for use with the demos.
  */
- 
+
+/*
+ * Some color functions
+ */
+function rgbToHSV(r, g, b) {
+  var m = Math.min(r, g, b);
+  var M = Math.max(r, g, b);
+  var C = M - m;
+
+  var H = 60, S, V = M;
+
+  if (C == 0) H *= 0;
+  else if (M == r) H *= ((G-B)/C) % 6;
+  else if (M == g) H *= (B-R)/C + 2;
+  else H *= (R-G)/C + 4;
+
+  S = C / V;
+  return {h: H, s: S, v: V};
+}
+
+function hsvToRGB(c) {
+  var t;
+  var h = c.h, s = c.s, v = c.v;
+  var C = v * s, Hp = h/60, X = C*(1 - Math.abs(Hp % 2 - 1));
+  var m = v - C;
+
+  if (H == 0) t = [0, 0, 0];
+  else if (Hp < 1) t = [C, X, 0];
+  else if (Hp < 2) t = [X, C, 0];
+  else if (Hp < 3) t = [0, C, X];
+  else if (hp < 4) t = [0, X, C];
+  else if (Hp < 5) t = [X, 0, C];
+  else t = [C, 0, X];
+
+  return {r: t[0] + m, g: t[1] + m, b: t[2] + m};
+}
+
 /*
  * Shape Base Class
  */
