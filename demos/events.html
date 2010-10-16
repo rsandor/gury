@@ -45,37 +45,19 @@
     <!-- Include the gury library -->
     <script type="text/javascript" charset="utf-8" src="../gury.js"></script>
     
+    <!-- Include some shared helper classes -->
+    <script type="text/javascript" charset="utf-8" src="shared.js"></script>
+    
+    
     <!-- Now script up a neato canvas scene! -->
     <script type="text/javascript" charset="utf-8">
     $(function() {
-      var target = window.t = {
-        color: 'red',
-        x: 40, y:40, size: 120,
-        draw: function(ctx) {
-          ctx.fillStyle = this.color;
-          x = this.x;
-          y = this.y;
-          size = this.size;
-          ctx.fillRect(x, y, size, size);
-        }
-      };
-      
-      var target2 = window.t2 = {
-        color: 'gray',
-        x: 60, y:60, size: 80,
-        draw: function(ctx) {
-          ctx.fillStyle = this.color;
-          x = this.x;
-          y = this.y;
-          size = this.size;
-          ctx.fillRect(x, y, size, size);
-        }
-      };
-      
-      var timeout = null;
-      
+      var timeout = null;      
       function handler(name) {
         return function() {
+          if (name.match(/mouse(enter|leave)/)) {
+            this.toggleHover();
+          }
           $('#'+name).addClass('active');
           
           function trigger() {
@@ -92,9 +74,10 @@
         };
       }
       
-      gury = $g().size(200, 200).background('black')
-        .add('target', target)
-        .add('target', target2)
+      gury = $g().size(200, 200)
+        .add('target', new Box(100, 100, 110, {color: '#363', theta: Math.PI / 4}))
+        .add('target', new Box(100, 100, 100, {color: '#696'}))
+        .add('target', new Circle(50, 50, 30, {color: '#363'}))
         .click('target', handler('click'))
         .mousedown('target', handler('mousedown'))
         .mouseup('target', handler('mouseup'))

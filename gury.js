@@ -475,7 +475,6 @@ window.$g = window.Gury = (function(window, jQuery) {
 
       // Annotate the object with gury specific members
       if (!isDefined(object._gury)) {
-        console.log('ADDED ANNOTATIONS');
         object._gury = { visible: true, paused: false, z: this.nextZ() };
       }
 
@@ -627,7 +626,7 @@ window.$g = window.Gury = (function(window, jQuery) {
   };
   
   /* 
-   * Object Events
+   * Gury Events
    * TODO Document event system fully 
    */
   var Events = (function() {
