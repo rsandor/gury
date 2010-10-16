@@ -185,6 +185,13 @@ window.$g = window.Gury = (function(window, jQuery) {
       });
       return this;
     };
+    
+    this.sort = function(cmp) {
+      if (isDefined(ordered)) {
+        ordered.sort(cmp);
+      }
+      return this;
+    };
   }
   
   /*
@@ -378,7 +385,7 @@ window.$g = window.Gury = (function(window, jQuery) {
   })(false, false);
 
   /*
-   * Core Gury Class
+   * Gury Core
    */
   function Gury(canvas, options) {
     if (canvas == null) {
@@ -402,233 +409,226 @@ window.$g = window.Gury = (function(window, jQuery) {
   
     Events.init(this);
     
+    var z = 0;
+    
+    this.nextZ = function() {
+      return z++;
+    };
+    
     return GuryInterface.setGury(canvas, this);
   }
-  
-  Gury.prototype.place = function(node) {
-    if (jQueryAvailable()) {
-      $(node).append(this.canvas);
-    }
-    else if (typeof node == "object" && typeof node.addChild == "function") {
-      node.addChild(this.canvas);
-    }
-    else {
-      GuryException("place() - Unable to place canvas tag (is jQuery loaded?)");
-    }
-    return this;
-  };
-  
-  /*
-   * Canvas style methods
-   */
-  Gury.prototype.size = function(w, h) {
-    this.canvas.width = w;
-    this.canvas.height = h;
-    return this;
-  };
-  
-  Gury.prototype.background = function(bg) {
-    this.canvas.style.background = bg;
-    return this;
-  };
-  
-  /*
-   * Objects and Rendering
-   */
-  Gury.prototype.add = function() {
-    var tag = null, object;
-    
-    if (arguments.length < 1) {
+  Gury.prototype = {
+    place: function(node) {
+      if (jQueryAvailable()) {
+        $(node).append(this.canvas);
+      }
+      else if (typeof node == "object" && typeof node.addChild == "function") {
+        node.addChild(this.canvas);
+      }
+      else {
+        GuryException("place() - Unable to place canvas tag (is jQuery loaded?)");
+      }
       return this;
-    }
-    else if (arguments.length < 2) {
-      object = arguments[0];
-      if (!isObjectOrFunction(object)) {
-        return this;
-      }
-    }
-    else {
-      tag = arguments[0];
-      object = arguments[1];
-      if (!isString(name) || !isObjectOrFunction(object)) {
-        return this;
-      }
-    }
+    },
+    
+    size: function(w, h) {
+      this.canvas.width = w;
+      this.canvas.height = h;
+      return this;
+    },
+    
+    background: function(bg) {
+      this.canvas.style.background = bg;
+      return this;
+    },
+    
+    add: function() {
+      var tag = null, object;
 
-    // Add the object to the global tag space (if a tag was provided)
-    if (tag != null) {
-      this._tags.add(tag, object);
-    }
-    
-    // We can apply new tags using add, but we don't want to keep track of the
-    // object twice in the master rendering list...
-    if (this._objects.has(object)) {
+      if (arguments.length < 1) {
+        return this;
+      }
+      else if (arguments.length < 2) {
+        object = arguments[0];
+        if (!isObjectOrFunction(object)) {
+          return this;
+        }
+      }
+      else {
+        tag = arguments[0];
+        object = arguments[1];
+        if (!isString(name) || !isObjectOrFunction(object)) {
+          return this;
+        }
+      }
+
+      // Add the object to the global tag space (if a tag was provided)
+      if (tag != null) {
+        this._tags.add(tag, object);
+      }
+
+      // We can apply new tags using add, but we don't want to keep track of the
+      // object twice in the master rendering list...
+      if (this._objects.has(object)) {
+        return this;
+      }
+
+      // Annotate the object with gury specific members
+      if (!isDefined(object._gury)) {
+        object._gury = { visible: true, paused: false, z: this.nextZ() };
+      }
+
+      // Add to the rendering list
+      this._objects.add(object);
+
       return this;
-    }
-    
-    // Annotate the object with gury specific members
-    if (!isDefined(object._gury)) {
-      object._gury = { visible: true, paused: false };
-    }
-    
-    // Add to the rendering list
-    this._objects.add(object);
-    
-    return this;
-  };
+    },
   
-  Gury.prototype.remove = function(object) {
-    if (isDefined(object)) {
+    remove: function(object) {
+      if (isDefined(object)) {
+        var gury = this;
+        var removed = this._tags.remove(object);
+        removed.each(function(r) {
+          gury._objects.remove(r);
+          delete r._gury;
+        });
+      }
+      return this;
+    },
+  
+    clear: function() {
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      return this;
+    },
+    
+    update: function() {
       var gury = this;
-      var removed = this._tags.remove(object);
-      removed.each(function(r) {
-        gury._objects.remove(r);
+      gury._objects.each(function(ob) {
+        if (isDefined(ob.update) && !ob._gury.paused) {
+          ob.update(gury);
+        }
+      });
+      return this;
+    },
+    
+    draw: function() {
+      this.clear();
+
+      var gury = this;
+      gury._objects.each(function(ob) {
+        if (!ob._gury.visible) {
+          return;
+        }
+
+        if (typeof ob == "function") {
+          ob.call(gury, gury.ctx, gury.canvas);
+        }
+        else if (typeof ob == "object" && typeof ob.draw != "undefined") {
+          ob.draw(gury.ctx, gury.canvas);
+        }
+      });
+
+      return this;
+    },
+    
+    play: function(interval) {
+      // Ignore multiple play attempts
+      if (this._loop_interval != null) {
+        return this;
+      }
+
+      // Immediately render the scene
+      this.draw();
+
+      // Start the rendering / update loop  
+      var gury = this;
+      this._loop_interval = setInterval(function() {
+        if (!gury._paused) {
+          gury.update().draw();
+        }
+      }, interval);
+      return this;
+    },
+    
+    pause: function() {
+      if (arguments.length > 0) {
+        for (var i = 0; i < arguments.length; i++) {
+          var arg = arguments[i];
+          if (isString(arg)) {
+            this.each(arg, function(ob) {
+              ob._gury.paused = !ob._gury.paused;
+            });
+          }
+          else if (isDefined(arg._gury)) {
+            arg._gury.paused = !arg._gury.paused;
+          }
+        }
+        return this;
+      }
+      else {
+        this._paused = !this._paused;
+        return this;
+      }
+    },
+    
+    stop: function() {
+      if (this._loop_interval != null) {
+        clearInterval(this._loop_interval);
+        this._paused = false;
+      }
+      return this;
+    },
+    
+    each: function() {
+      var tag, closure;
+
+      if (arguments.length < 2 && isFunction(arguments[0])) {
+        closure = arguments[0];
+        this._objects.each(closure);
+      }
+      else if (isString(arguments[0]) && isFunction(arguments[1])) {
+        tag = arguments[0];
+        closure = arguments[1];
+        var space = this._tags.find(tag);
+        if (space) {
+          space.getObjects().each(closure);
+        }
+      }
+      else if (isFunction(arguments[0])) {
+        closure = arguments[0];
+        this._objects.each(closure);
+      }
+      else if (isFunction(arguments[1])) {
+        closure = arguments[1];
+        this._objects.each(closure);
+      }
+
+      return this;
+    },
+    
+    hide: function(tag) {
+      return this.each(tag, function(obj, index) {
+        obj._gury.visible = false;
+      });
+    },
+    
+    show: function(tag) {
+      return this.each(tag, function(obj, index) {
+        obj._gury.visible = true;
+      });
+    },
+    
+    toggle: function(tag) {
+      return this.each(tag, function(obj, index) {
+        obj._gury.visible = !obj._gury.visible;
       });
     }
-    return this;
-  };
-  
-  Gury.prototype.clear = function() {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    return this;
-  };
-  
-  Gury.prototype.update = function() {
-    var gury = this;
-    gury._objects.each(function(ob) {
-      if (isDefined(ob.update) && !ob._gury.paused) {
-        ob.update(gury);
-      }
-    });
-    return this;
-  };
-  
-  Gury.prototype.draw = function() {
-    this.clear();
-    
-    var gury = this;
-    gury._objects.each(function(ob) {
-      if (!ob._gury.visible) {
-        return;
-      }
-
-      if (typeof ob == "function") {
-        ob.call(gury, gury.ctx, gury.canvas);
-      }
-      else if (typeof ob == "object" && typeof ob.draw != "undefined") {
-        ob.draw(gury.ctx, gury.canvas);
-      }
-    });
-    
-    return this;
-  };
-  
-  /*
-   * Animation Controls
-   */
-  
-  Gury.prototype.play = function(interval) {
-    // Ignore multiple play attempts
-    if (this._loop_interval != null) {
-      return this;
-    }
-  
-    // Immediately render the scene
-    this.draw();
-    
-    // Start the rendering / update loop  
-    var gury = this;
-    this._loop_interval = setInterval(function() {
-      if (!gury._paused) {
-        gury.update().draw();
-      }
-    }, interval);
-    return this;
-  };
-  
-  
-  Gury.prototype.pause = function() {
-    if (arguments.length > 0) {
-      for (var i = 0; i < arguments.length; i++) {
-        var arg = arguments[i];
-        if (isString(arg)) {
-          this.each(arg, function(ob) {
-            ob._gury.paused = !ob._gury.paused;
-          });
-        }
-        else if (isDefined(arg._gury)) {
-          arg._gury.paused = !arg._gury.paused;
-        }
-      }
-      return this;
-    }
-    else {
-      this._paused = !this._paused;
-      return this;
-    }
-  };
-  
-  Gury.prototype.stop = function() {
-    if (this._loop_interval != null) {
-      clearInterval(this._loop_interval);
-      this._paused = false;
-    }
-    return this;
-  };
-  
-  /*
-   * Object / Tag Methods
-   */
-  Gury.prototype.each = function() {
-    var tag, closure;
-    
-    if (arguments.length < 2 && isFunction(arguments[0])) {
-      closure = arguments[0];
-      this._objects.each(closure);
-    }
-    else if (isString(arguments[0]) && isFunction(arguments[1])) {
-      tag = arguments[0];
-      closure = arguments[1];
-      var space = this._tags.find(tag);
-      if (space) {
-        space.getObjects().each(closure);
-      }
-    }
-    else if (isFunction(arguments[0])) {
-      closure = arguments[0];
-      this._objects.each(closure);
-    }
-    else if (isFunction(arguments[1])) {
-      closure = arguments[1];
-      this._objects.each(closure);
-    }
-    
-    return this;
-  };
-   
-  Gury.prototype.hide = function(tag) {
-    return this.each(tag, function(obj, index) {
-      obj._gury.visible = false;
-    });
-  };
-  
-  Gury.prototype.show = function(tag) {
-    return this.each(tag, function(obj, index) {
-      obj._gury.visible = true;
-    });
-  };
-  
-  Gury.prototype.toggle = function(tag) {
-    return this.each(tag, function(obj, index) {
-      obj._gury.visible = !obj._gury.visible;
-    });
   };
   
   /* 
    * Object Events
+   * TODO Document event system fully 
    */
-  
-  // TODO Document event system fully 
   var Events = (function() {
     // Encapsulates an object in a set or finds a set of objects matching a tag
     function objects(gury, query) {
@@ -642,23 +642,6 @@ window.$g = window.Gury = (function(window, jQuery) {
       return objects;
     }
     
-    /*
-     * Determines if an event can be bound to an object.
-     * Specifically, for mouse events, this determines if
-     * the object contains the required members in order
-     * to work with the event system and throws an exception
-     * if the object does not.
-     */
-    function canBind(object, event) {
-      // Check for mouse event requirements
-      if (event == 'click' || event.match(/^mouse.+$/)) {
-        if (!isDefined(object.x, object.y) || !(isDefined(object.size) || isDefined(object.width, object.height))) {
-          GuryException('bind() - Cannot bind mouse event to object without position and dimensions');
-        }
-      }
-      return true;
-    }
-    
     // TODO Document me
     Gury.prototype.bind = function(q, event, closure) {
       if (isDefined(q, event, closure)) {
@@ -666,7 +649,6 @@ window.$g = window.Gury = (function(window, jQuery) {
         var events = gury._events;
 
         objects(gury, q).each(function(ob) {
-          canBind(ob, event);
           if (!isDefined(events[event])) {
             events[event] = new Hashtable();
           }
@@ -759,24 +741,11 @@ window.$g = window.Gury = (function(window, jQuery) {
     // TODO Document me
     Gury.prototype.mouseleave = eventFunction('mouseleave');
     
-    // Determines if an object draws to a position on the screen
-    function inRange(x, y, object) {
-      var q = x - object.x;
-      var r = y - object.y;
-
-      if (isDefined(object.size)) {
-        return q >= 0 && q < object.size && r >= 0 && r < object.size;
-      }
-      else if (isDefined(object.width, object.height)) {
-        return q >= 0 && q < object.width && r >= 0 && r < object.height;
-      }
-
-      return false;
-    }
-    
     // Adapted from: http://www.quirksmode.org/js/findpos.html
-    function getOffset(object) {
+    function getPositon(gury, e) {
       var left = 0, top = 0;
+      var object = gury.canvas;
+      
       if (object.offsetParent) {
         while (object) {
           left += object.offsetLeft;
@@ -784,30 +753,37 @@ window.$g = window.Gury = (function(window, jQuery) {
           object = object.offsetParent;
         }
       }
-      return {left:left, top:top};
+      
+      return {
+        x: e.pageX - left,
+        y: e.pageY - top
+      };
     }
     
-    function triggerObjectsAt(gury, e, event, closure) {
-      if (isDefined(gury._events[event])) {
-        var offset = getOffset(gury.canvas);
-        var x = e.pageX - offset.left;
-        var y = e.pageY - offset.top;
-
-        // TODO Replace with spatial indexing lookup
-        var found = 0;
+    function triggerObjectAt(gury, e, name, closure) {
+      if (isDefined(gury._events[name])) {
+        var pos = getPosition(gury, e);
+        var found = false;
         
-        gury._events[event].each(function(entry) {
-          if (inRange(x, y, entry.target)) {
-            gury.trigger(event, entry.target, e);
-            if (isFunction(closure)) {
-              closure.call(entry.target);
-            }
-            
-          
+        var sorted = new Set(ord);
+        gury._events[name].each(function(ob) { sorted.add(ob); });
+        
+        // TODO Look into avoiding resorts
+        sorted.sort(function(a, b) {
+          if (a._gury.z < b._gury.z) {
+            return -1;
+          }
+          else {
+            return 1;
+          }
+        }).each(function(ob) {
+          if (!found && HitMap.hit(gury, ob, pos.x, pos.y)) {
+            found = true;
+            gury.trigger(name, ob, e);
           }
         });
         
-        if (found == 0) {
+        if (!found) {
           closure.call(null);
         }
       }
@@ -823,20 +799,20 @@ window.$g = window.Gury = (function(window, jQuery) {
 
         // Mouse Events
         canvas.onclick = function(e) {
-          triggerObjectsAt(gury, e, 'click');
+          triggerObjectAt(gury, e, 'click');
         };
         
         canvas.onmousedown = function(e) {
-          triggerObjectsAt(gury, e, 'mousedown');
+          triggerObjectAt(gury, e, 'mousedown');
         };
         
         canvas.onmouseup = function(e) {
-          triggerObjectsAt(gury, e, 'mouseup');
+          triggerObjectAt(gury, e, 'mouseup');
         };
         
         // Handles mousemove, mouseenter, and mouseleave
         canvas.onmousemove = function(e) {
-          triggerObjectsAt(gury, e, 'mousemove', function() {
+          triggerObjectAt(gury, e, 'mousemove', function() {
             if (this != over) {
               if (isDefined(over)) {
                 gury.trigger('mouseleave', over, e);
