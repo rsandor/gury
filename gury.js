@@ -475,6 +475,7 @@ window.$g = window.Gury = (function(window, jQuery) {
 
       // Annotate the object with gury specific members
       if (!isDefined(object._gury)) {
+        console.log('ADDED ANNOTATIONS');
         object._gury = { visible: true, paused: false, z: this.nextZ() };
       }
 
@@ -742,7 +743,7 @@ window.$g = window.Gury = (function(window, jQuery) {
     Gury.prototype.mouseleave = eventFunction('mouseleave');
     
     // Adapted from: http://www.quirksmode.org/js/findpos.html
-    function getPositon(gury, e) {
+    function getPosition(gury, e) {
       var left = 0, top = 0;
       var object = gury.canvas;
       
@@ -765,25 +766,30 @@ window.$g = window.Gury = (function(window, jQuery) {
         var pos = getPosition(gury, e);
         var found = false;
         
-        var sorted = new Set(ord);
-        gury._events[name].each(function(ob) { sorted.add(ob); });
+        var sorted = new Set(true);
+        gury._events[name].each(function(ob) { 
+          sorted.add(ob.target); 
+        });
         
         // TODO Look into avoiding resorts
         sorted.sort(function(a, b) {
           if (a._gury.z < b._gury.z) {
-            return -1;
+            return 1;
           }
           else {
-            return 1;
+            return -1;
           }
         }).each(function(ob) {
           if (!found && HitMap.hit(gury, ob, pos.x, pos.y)) {
             found = true;
             gury.trigger(name, ob, e);
+            if (closure) {
+              closure.call(ob);
+            }
           }
         });
         
-        if (!found) {
+        if (!found && closure) {
           closure.call(null);
         }
       }
@@ -818,6 +824,7 @@ window.$g = window.Gury = (function(window, jQuery) {
                 gury.trigger('mouseleave', over, e);
               }
               gury.trigger('mouseenter', this);
+              over = this;
             }
           });
         };
