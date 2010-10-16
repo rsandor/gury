@@ -22,26 +22,37 @@
   THE SOFTWARE.
 */
 
-window.$g = window.Gury = (function() {
+window.$g = window.Gury = (function(window, jQuery) {
   /*
-   * Utility functions
+   * Type Checking and Utility Functions
    */
-  function isObject(v) { return typeof v == "object"; }
-  function isFunction(v) { return typeof v == "function"; }
-  function isString(v) { return typeof v == "string"; }
-  function isObjectOrFunction(v) { return typeof v == "function" || typeof v == "object"; }
-  
-  function isDefined() { 
+  function isDefined() {
     for (var i = 0; i < arguments.length; i++) {
-      if (typeof arguments[i] == "undefined" || arguments[i] === null) {
+      var v = arguments[i];
+      if (typeof v == "undefined" || v == null)
         return false;
-      }
     }
     return arguments.length > 0;
   }
   
+  function isString(v) {
+    return typeof v == "string";
+  }
+  
+  function isObject(v) {
+    return typeof v == "object";
+  }
+  
+  function isFunction(v) {
+    return typeof v == "function";
+  }
+  
+  function isObjectOrFunction(v) {
+    return isObject(v) || isFunction(v);
+  }
+  
   /*
-   * Internal exception handling
+   * Gury exception handling
    */
   var _failWithException = true;
   
@@ -151,6 +162,7 @@ window.$g = window.Gury = (function() {
       if (table.has(object)) {
         return this;
       }
+      
       if (ordered) {
         ordered.push(object);
       }
@@ -257,7 +269,7 @@ window.$g = window.Gury = (function() {
             currentSpace = currentSpace.addChild(tags[i]);
           }
         }
-
+        
         currentSpace._objects.add(object);
 
         return object;
@@ -759,7 +771,8 @@ window.$g = window.Gury = (function() {
   };
   
   return GuryInterface;
-})();
+})(window, window.jQuery || null);
+
 
 // "There's a star man waiting in the sky. He'd like to come and meet us but 
 // he think's he'll blow our minds."
