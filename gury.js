@@ -52,6 +52,16 @@ window.$g = window.Gury = (function(window, jQuery) {
   }
   
   /*
+   * Check for jQuery
+   * TODO This might be removed with the plugin binding
+   */
+  var $ = jQuery;
+  
+  function jQueryAvailable() {
+    return $ != null;
+  }
+  
+  /*
    * Gury exception handling
    */
   var _failWithException = true;
@@ -311,7 +321,7 @@ window.$g = window.Gury = (function(window, jQuery) {
   /*
    * Core Gury Class
    */
-  function Gury(canvas) {
+  function Gury(canvas, options) {
     if (canvas == null) {
       canvas = document.createElement('canvas');
     }
@@ -337,7 +347,7 @@ window.$g = window.Gury = (function(window, jQuery) {
   }
   
   Gury.prototype.place = function(node) {
-    if (typeof node == "string" && typeof $ == "function") {
+    if (jQueryAvailable()) {
       $(node).append(this.canvas);
     }
     else if (typeof node == "object" && typeof node.addChild == "function") {
@@ -759,8 +769,23 @@ window.$g = window.Gury = (function(window, jQuery) {
   /*
    * Public interface
    */
-  function GuryInterface(id) {
-    return new Gury(id ? document.getElementById(id) : null);
+  function GuryInterface(q, options) {
+    var defaultOptions = {};
+    for (var k in defaultOptions) {
+      if (!isDefined(options[k])) {
+        options[k] = defaultOptions[k];
+      }
+    }
+    
+    var object;
+    if (isString(q)) {
+      object = document.getElementById(q);
+    }
+    else {
+      object = null;
+    }
+    
+    return new Gury(object, options);
   }
   
   GuryInterface.failWithException = function(b) {
@@ -771,8 +796,22 @@ window.$g = window.Gury = (function(window, jQuery) {
   };
   
   return GuryInterface;
-})(window, window.jQuery || null);
+})(window);
 
+/*
+ * jQuery plugin integration
+ * TODO Finish implementing me
+ */
+/*(function($) {
+  if (typeof window.jQuery != "undefined" && window.jQuery != null) {
+    window.jQuery.fn.gury = function(options) {
+      this.each(function() {
+        
+      });
+    }
+  }
+})(window.jQuery);*/
 
-// "There's a star man waiting in the sky. He'd like to come and meet us but 
-// he think's he'll blow our minds."
+/* "There's a star man waiting in the sky. He'd like to come and meet us but 
+    he think's he'll blow our minds." */
+/* We'll miss you Mandelbrot */
