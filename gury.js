@@ -317,7 +317,95 @@ window.$g = window.Gury = (function(window, jQuery) {
       }
     };
   })();
-  
+
+  /*
+   * HitMap Module
+   * TODO Possibly expose showing and timing functionality in the future
+   */
+  var HitMap = window.hm = (function(show, time) {
+    // Secondary hitmap canvas
+    var map = document.createElement('canvas');
+    var ctx = map.getContext('2d');
+    
+    if (show) {
+      map.style.position = "absolute";
+      map.style.top = "10px";
+      map.style.left = "10px";
+      map.style.background = "white";
+      document.body.appendChild(map);
+    }
+    
+    // Hit detection routines
+    var lastWidth, lastHeight;
+    
+    function resetContext(gury) {
+      var w = gury.canvas.width;
+      var h = gury.canvas.height;
+      if (w != lastWidth || h != lastHeight) {
+        map.width = lastWidth = w;
+        map.height = lastHeight = h;
+      }
+      ctx.clearRect(0, 0, w, h);
+    }
+    
+    function draw(gury, object) {
+      if (isFunction(object)) {
+        ob.call(gury, ctx, gury.canvas);
+      }
+      else if (isObject(object) && isDefined(object.draw)) {
+        object.draw(ctx, gury.canvas);
+      }
+    }
+    
+    function testPosition(x, y) {
+      if (ctx == null) {
+        return false;
+      }
+      
+      var imageData = ctx.getImageData(0, 0, lastWidth, lastHeight);
+      var w = imageData.width;
+      var h = imageData.height;
+      var data = imageData.data;
+      
+      if (x < 0 || x >= w || y < 0 || y >= h) {
+        return false;
+      }
+      
+      var pos = w*4*y + x*4;
+      var red = imageData.data[pos];
+      var green = imageData.data[pos+1];
+      var blue = imageData.data[pos+2];
+      var alpha = imageData.data[pos+3];
+      
+      return (red > 0 || green > 0 || blue > 0 || alpha > 0);
+    }
+    
+    // Return the public interface
+    return {
+      hit: function(gury, object, x, y) {
+        var timeStart;
+        
+        if (time) {
+          timeStart = new Date().getTime();
+        }
+        
+        var isHit = false;
+        if (isObjectOrFunction(object)) {
+          resetContext(gury);
+          draw(gury, object);
+          isHit = testPosition(x, y);
+        }
+        
+        // Finish Timing
+        if (time && console && console.log) {
+          console.log("Hit detection completed in " + (new Date().getTime() - timeStart) + "ms");
+        }
+        
+        return isHit;
+      }
+    };
+  })(false, false);
+
   /*
    * Core Gury Class
    */
@@ -577,20 +665,6 @@ window.$g = window.Gury = (function(window, jQuery) {
   
   // TODO Document event system fully 
   var Events = (function() {
-    function inRange(x, y, object) {
-      var q = x - object.x;
-      var r = y - object.y;
-
-      if (isDefined(object.size)) {
-        return q >= 0 && q < object.size && r >= 0 && r < object.size;
-      }
-      else if (isDefined(object.width, object.height)) {
-        return q >= 0 && q < object.width && r >= 0 && r < object.height;
-      }
-
-      return false;
-    }
-     
     // Encapsulates an object in a set or finds a set of objects matching a tag
     function objects(gury, query) {
       var objects = new Set();
@@ -601,34 +675,6 @@ window.$g = window.Gury = (function(window, jQuery) {
         objects.add(query);
       }
       return objects;
-    }
-    
-    // Adapted from: http://www.quirksmode.org/js/findpos.html
-    function getOffset(object) {
-      var left = 0, top = 0;
-      if (object.offsetParent) {
-        while (object) {
-          left += object.offsetLeft;
-          top += object.offsetTop;
-          object = object.offsetParent;
-        }
-      }
-      return {left:left, top:top};
-    }
-    
-    function triggerObjectsAt(gury, e, event) {
-      if (isDefined(gury._events[event])) {
-        var offset = getOffset(gury.canvas);
-        var x = e.pageX - offset.left;
-        var y = e.pageY - offset.top;
-
-        // TODO Replace with spatial indexing lookup
-        gury._events[event].each(function(entry) {
-          if (inRange(x, y, entry.target)) {
-            gury.trigger(event, entry.target, e);
-          }
-        });
-      }
     }
     
     /*
@@ -649,12 +695,13 @@ window.$g = window.Gury = (function(window, jQuery) {
     }
     
     // TODO Document me
-    Gury.prototype.bind = function(object, event, closure) {
-      if (isDefined(object, event, closure) && canBind(object, event)) {
+    Gury.prototype.bind = function(q, event, closure) {
+      if (isDefined(q, event, closure)) {
         var gury = this;
         var events = gury._events;
 
-        objects(gury, object).each(function(ob) {
+        objects(gury, q).each(function(ob) {
+          canBind(ob, event);
           if (!isDefined(events[event])) {
             events[event] = new Hashtable();
           }
@@ -741,6 +788,69 @@ window.$g = window.Gury = (function(window, jQuery) {
     // TODO Document me
     Gury.prototype.mousemove = eventFunction('mousemove');
     
+    // TODO Document me
+    Gury.prototype.mouseenter = eventFunction('mouseenter');
+    
+    // TODO Document me
+    Gury.prototype.mouseleave = eventFunction('mouseleave');
+    
+    // Determines if an object draws to a position on the screen
+    function inRange(x, y, object) {
+      var q = x - object.x;
+      var r = y - object.y;
+
+      if (isDefined(object.size)) {
+        return q >= 0 && q < object.size && r >= 0 && r < object.size;
+      }
+      else if (isDefined(object.width, object.height)) {
+        return q >= 0 && q < object.width && r >= 0 && r < object.height;
+      }
+
+      return false;
+    }
+    
+    // Adapted from: http://www.quirksmode.org/js/findpos.html
+    function getOffset(object) {
+      var left = 0, top = 0;
+      if (object.offsetParent) {
+        while (object) {
+          left += object.offsetLeft;
+          top += object.offsetTop;
+          object = object.offsetParent;
+        }
+      }
+      return {left:left, top:top};
+    }
+    
+    function triggerObjectsAt(gury, e, event, closure) {
+      if (isDefined(gury._events[event])) {
+        var offset = getOffset(gury.canvas);
+        var x = e.pageX - offset.left;
+        var y = e.pageY - offset.top;
+
+        // TODO Replace with spatial indexing lookup
+        var found = 0;
+        
+        gury._events[event].each(function(entry) {
+          if (inRange(x, y, entry.target)) {
+            gury.trigger(event, entry.target, e);
+            if (isFunction(closure)) {
+              closure.call(entry.target);
+            }
+            
+          
+          }
+        });
+        
+        if (found == 0) {
+          closure.call(null);
+        }
+      }
+    }
+    
+    // The object the mouse is currently over
+    var over = null;
+    
     return {
       init: function(gury) {
         gury._events = {};
@@ -759,8 +869,23 @@ window.$g = window.Gury = (function(window, jQuery) {
           triggerObjectsAt(gury, e, 'mouseup');
         };
         
+        // Handles mousemove, mouseenter, and mouseleave
         canvas.onmousemove = function(e) {
-          triggerObjectsAt(gury, e, 'mousemove');
+          triggerObjectsAt(gury, e, 'mousemove', function() {
+            if (this != over) {
+              if (isDefined(over)) {
+                gury.trigger('mouseleave', over, e);
+              }
+              gury.trigger('mouseenter', this);
+            }
+          });
+        };
+        
+        // Handles mouseleave when the user leaves the canvas itself
+        canvas.onmouseleave = function(e) {
+          if (over != null) {
+            gury.trigger('mouseleave', over, e);
+          }
         };
       }
     };
@@ -796,7 +921,7 @@ window.$g = window.Gury = (function(window, jQuery) {
   };
   
   return GuryInterface;
-})(window);
+})(window, window.jQuery);
 
 /*
  * jQuery plugin integration
