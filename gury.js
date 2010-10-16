@@ -86,7 +86,8 @@ window.$g = window.Gury = (function() {
   var nextHash = 0;
   function Hashtable() {
     var table = this.table = {};
-    
+    var length = 0;
+
     function hash(object) {
       if (isString(object)) {
         return object;
@@ -98,8 +99,11 @@ window.$g = window.Gury = (function() {
     }
     
     this.set = function(key, value) {
-      var h = hash(key);
-      table[h] = value;
+      if (isDefined(value)) {
+        var h = hash(key);
+        table[h] = value;
+        length++;
+      }
     };
     
     this.has = function(key) {
@@ -113,8 +117,11 @@ window.$g = window.Gury = (function() {
     };
     
     this.remove = function(key) {
-      var h = hask(key);
-      delete table[h];
+      if (isDefined(key)) {
+        var h = hask(key);
+        delete table[h];
+        length--;
+      }
     };
     
     this.each = function(closure) {
@@ -123,6 +130,8 @@ window.$g = window.Gury = (function() {
       }
       return this;
     };
+
+    this.__defineGetter__("length", function() { return length; });
   }
   
   /*
@@ -131,6 +140,8 @@ window.$g = window.Gury = (function() {
   function Set(ord) {
     var table = this.table = new Hashtable();
     var ordered = this.ordered = ord ? [] : false;
+    
+    this.__defineGetter__("length", function() { return table.length; });
     
     this.has = function(object) {
       return table.has(object);
@@ -172,6 +183,13 @@ window.$g = window.Gury = (function() {
       else {
         table.each(closure);
       }
+      return this;
+    };
+	
+    this.clear = function() {
+      this.each(function(element, index) {
+        this.remove(element);
+      });
       return this;
     };
   }
@@ -420,7 +438,7 @@ window.$g = window.Gury = (function() {
       }
 
       if (typeof ob == "function") {
-        ob.call(gury, gury.ctx);
+        ob.call(gury, gury.ctx, gury.canvas);
       }
       else if (typeof ob == "object" && typeof ob.draw != "undefined") {
         ob.draw(gury.ctx, gury.canvas);
