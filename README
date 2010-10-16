@@ -21,6 +21,18 @@ Getting started with Gury is a piece of cake! Here's a step-by-step guide:
 
 To see it in action view the `demo.html` file in a canvas enabled browser.
 
+Browser Compatibility
+--------------------------------------------------------------------------------
+
+Below is the working status of Gury in various Canvas enabled browsers. If you 
+primarily use a browser check out the `demos` folder and see if any of them fail.
+If so please raise an issue!
+
+* Chrome - Tested and Working (v 6.0)
+* Safari - Not tested
+* FireFox - Not tested
+* Opera - Not tested
+
 Example
 --------------------------------------------------------------------------------
 Here is an example of some gury code to make a simple spinning square animation.
