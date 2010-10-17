@@ -114,7 +114,7 @@ window.$g = window.Gury = (function(window, jQuery) {
     
     this.remove = function(key) {
       if (isDefined(key)) {
-        var h = hask(key);
+        var h = hash(key);
         delete table[h];
         length--;
       }
