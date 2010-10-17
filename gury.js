@@ -174,7 +174,7 @@ window.$g = window.Gury = (function(window, jQuery) {
     this.each = function(closure) {
       if (ordered) {
         for (var i = 0; i < ordered.length; i++) {
-          closure(ordered[i], i);
+          closure.call(this, ordered[i], i);
         }
       }
       else {
