@@ -1,4 +1,4 @@
-gury - A jQuery inspired canvas utility library
+gury (v 0.1) - A jQuery inspired canvas utility library
 ===
 by Ryan Sandor Richards
 
