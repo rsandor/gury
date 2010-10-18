@@ -1,5 +1,5 @@
 gury - A jQuery inspired canvas utility library
-================================================================================
+===
 by Ryan Sandor Richards
 
 Gury (pronounced "jury") is a simple to use utility library for drawing,
@@ -10,13 +10,32 @@ It was built with simplicity in mind and its usage was modeled in the image
 of jQuery. For instance you can initialize, style, and animate an entire scene
 in a single expression using chaining.
 
+Example
+---
+Here is an example of some gury code to make a simple spinning square animation.
+
+    $g('screen').size(100, 100).add({
+        theta: 0, 
+        draw: function(ctx) {
+            ctx.save();
+            ctx.translate(50, 50);
+            ctx.rotate(this.theta);
+            ctx.fillStyle = "#ada";
+            ctx.fillRect(-32, -32, 64, 64);
+            ctx.restore();
+            this.theta += Math.PI / 120;
+        }
+    }).play(16);
+
+Neat, eh?
+
 Documentation
 ---
 You can find full API documentation for the project on it's github wiki:
 http://github.com/rsandor/gury/wiki/API
 
 License (MIT)
---------------------------------------------------------------------------------
+---
 Copyright (c) 2010 Ryan Sandor Richards
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
