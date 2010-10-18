@@ -436,6 +436,15 @@ window.$g = window.Gury = (function(window, jQuery) {
     },
     
     // TODO Document me
+    get ctx() {
+      var canvas = this.canvases.first();
+      if (canvas) {
+        return canvas.getContext('2d');
+      }
+      return null;
+    },
+    
+    // TODO Document me
     // Registers a canvas to this Gury Object
     register: function (canvas) {
       if (isCanvas(canvas)) {
