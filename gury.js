@@ -430,12 +430,10 @@ window.$g = window.Gury = (function(window, jQuery) {
     this.nextZ = function() { return z++; };
   }
   Gury.prototype = {
-    // TODO Document me
     get canvas() {
       return this.canvases.first();
     },
     
-    // TODO Document me
     get ctx() {
       var canvas = this.canvases.first();
       if (canvas) {
@@ -444,8 +442,6 @@ window.$g = window.Gury = (function(window, jQuery) {
       return null;
     },
     
-    // TODO Document me
-    // Registers a canvas to this Gury Object
     register: function (canvas) {
       if (isCanvas(canvas)) {
         if (canvasToGury.has(canvas)) {
@@ -461,8 +457,6 @@ window.$g = window.Gury = (function(window, jQuery) {
       return this;
     },
     
-    // TODO Document me
-    // Unregisters a canvas from this Gurty object
     unregister: function(canvas) {
       if (isCanvas(canvas)) {
         canvasToGury.remove(canvas);
@@ -472,7 +466,6 @@ window.$g = window.Gury = (function(window, jQuery) {
       return this;
     },
     
-    // TODO Update documentation
     place: function(node) {
       this.canvases.each(function(canvas) {
         if (jQueryAvailable()) {
@@ -488,7 +481,6 @@ window.$g = window.Gury = (function(window, jQuery) {
       return this;
     },
     
-    // TODO Update documentation
     size: function(w, h) {
       this.canvases.each(function(canvas) {
         canvas.width = w;
@@ -497,7 +489,6 @@ window.$g = window.Gury = (function(window, jQuery) {
       return this;
     },
     
-    // TODO Update documentation
     background: function(bg) {
       this.canvases.each(function(canvas) {
         canvas.style.background = bg;
@@ -559,7 +550,6 @@ window.$g = window.Gury = (function(window, jQuery) {
       return this;
     },
   
-    // TODO Update documentation
     clear: function() {
       this.canvases.each(function(canvas) {
         var ctx = canvas.getContext('2d');
@@ -578,7 +568,6 @@ window.$g = window.Gury = (function(window, jQuery) {
       return this;
     },
     
-    // TODO Update documentation
     draw: function() {
       this.clear();
 
@@ -696,7 +685,6 @@ window.$g = window.Gury = (function(window, jQuery) {
   
   /* 
    * Gury Events
-   * TODO Document event system fully 
    */
   var Events = (function() {
     // Encapsulates an object in a set or finds a set of objects matching a tag
@@ -711,7 +699,6 @@ window.$g = window.Gury = (function(window, jQuery) {
       return objects;
     }
     
-    // TODO Document me
     Gury.prototype.bind = function(q, event, closure) {
       if (isDefined(q, event, closure)) {
         var gury = this;
@@ -733,13 +720,12 @@ window.$g = window.Gury = (function(window, jQuery) {
       return this;
     };
 
-    // TODO Document me
-    Gury.prototype.unbind = function(object, event, closure) {
-      if (isDefined(object, event)) {
+    Gury.prototype.unbind = function(q, event, closure) {
+      if (isDefined(q, event)) {
         var gury = this;
         var events = gury._events;
 
-        objects(gury, object).each(function(ob) {
+        objects(gury, q).each(function(ob) {
           if (!isDefined(events[event])) {
             return;
           }
@@ -764,7 +750,6 @@ window.$g = window.Gury = (function(window, jQuery) {
       return this;
     };
 
-    // TODO Document me
     Gury.prototype.trigger = function(event, object, e) {
       if (isDefined(event, this._events[event], object)) {
         if (this._events[event].has(object)) {
@@ -792,22 +777,11 @@ window.$g = window.Gury = (function(window, jQuery) {
       };
     }
     
-    // TODO Document me
     Gury.prototype.click = eventFunction('click');
-
-    // TODO Document me
     Gury.prototype.mousedown = eventFunction('mousedown');
-
-    // TODO Document me
     Gury.prototype.mouseup = eventFunction('mouseup');
-
-    // TODO Document me
     Gury.prototype.mousemove = eventFunction('mousemove');
-    
-    // TODO Document me
     Gury.prototype.mouseenter = eventFunction('mouseenter');
-    
-    // TODO Document me
     Gury.prototype.mouseleave = eventFunction('mouseleave');
     
     // Adapted from: http://www.quirksmode.org/js/findpos.html
