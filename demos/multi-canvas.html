@@ -56,6 +56,8 @@
         this.height = height || 128;
         this.orient = orient || 'vertical';
         
+        this.barColor = "#000";
+        
         this._value = 1;
         this._gradient = null;
         this._down = false;
@@ -81,8 +83,10 @@
           });
         },
         
-        addChangeListener: function(ob) {
-          this._changeListeners.push(ob);
+        addChangeListener: function() {
+          for (var i = 0; i < arguments.length; i++) {
+            this._changeListeners.push(arguments[i]);
+          }
         },
         
         mousedown: function(e) {
@@ -97,7 +101,32 @@
         },
         
         mouseup: function(e) {
-         this._down = false;
+          this._down = false;
+        },
+        
+        mouseleave: function(e) {
+          this._down = false;
+        },
+        
+        drawValueBar: function(ctx) {
+          var x0, x1, y0, y1;
+          if (this.orient == "vertical") {
+            y0 = y1 = this.height * this._value | 0;
+            x0 = 0;
+            x1 = this.width;
+          }
+          else {
+            x0 = x1 = this.width * this._value | 0;
+            y0 = 0;
+            y1 = this.height;
+          }
+          
+          ctx.strokeStyle = this.barColor;
+          ctx.beginPath();
+          ctx.moveTo(x0 + this.x, y0 + this.y);
+          ctx.lineTo(x1 + this.x, y1 + this.y);
+          ctx.closePath();
+          ctx.stroke();
         }
       };
       
@@ -133,6 +162,7 @@
         draw: function(ctx, canvas) {
           ctx.fillStyle = this.getGradient(ctx);
           ctx.fillRect(this.x, this.y, this.width, this.height);
+          this.drawValueBar(ctx);
         },
         
         getHue: function() {
@@ -140,37 +170,9 @@
         }
       });
      
-      function ValueSlider() {
-        Slider.apply(this, arguments);
-        this._gradient = null;
-      }
-      ValueSlider.prototype = extend(new Slider(), {
-        draw: function(ctx, canvas) {
-          var mw, mh;
-          if (this.orient == "vertical") {
-            mw = 0;
-            mh = this.height;
-          }
-          else {
-            mw = this.width;
-            mh = 0;
-          }
-          
-          var grad = ctx.createLinearGradient(0, 0, mw, mh);
-          grad.addColorStop(0, '#000');   // Black
-          grad.addColorStop(1, hsvToColor(hue.getHue(), 1.0, 1.0));   // Full Value
-          
-          ctx.fillStyle = grad;
-          ctx.fillRect(this.x, this.y, this.width, this.height);
-        },
-        
-        getValue: function() {
-          return this._value;
-        }
-      });
-     
       function SaturationSlider() {
         Slider.apply(this, arguments);
+        this._value = 1.0;
       }
       SaturationSlider.prototype = extend(new Slider(), {
         draw: function(ctx, canvas) {
@@ -190,9 +192,42 @@
           
           ctx.fillStyle = grad;
           ctx.fillRect(this.x, this.y, this.width, this.height);
+          this.drawValueBar(ctx);
         },
         
         getSaturation: function() {
+          return this._value;
+        }
+      });
+     
+      function ValueSlider() {
+        Slider.apply(this, arguments);
+        this._gradient = null;
+        this._value = 0.8;
+        this.barColor = "#fff";
+      }
+      ValueSlider.prototype = extend(new Slider(), {
+        draw: function(ctx, canvas) {
+          var mw, mh;
+          if (this.orient == "vertical") {
+            mw = 0;
+            mh = this.height;
+          }
+          else {
+            mw = this.width;
+            mh = 0;
+          }
+          
+          var grad = ctx.createLinearGradient(0, 0, mw, mh);
+          grad.addColorStop(0, '#000');   // Black
+          grad.addColorStop(1, hsvToColor(hue.getHue(), 1.0, 1.0));   // Full Value
+          
+          ctx.fillStyle = grad;
+          ctx.fillRect(this.x, this.y, this.width, this.height);
+          this.drawValueBar(ctx);
+        },
+        
+        getValue: function() {
           return this._value;
         }
       });
@@ -202,19 +237,22 @@
       $g('hue').size(32, 256).add(hue)
         .mousedown(hue, hue.mousedown)
         .mousemove(hue, hue.mousemove)
-        .mouseup(hue, hue.mouseup).play(32);
+        .mouseup(hue, hue.mouseup)
+        .mouseleave(hue, hue.mouseleave).play(32);
       
       var sat = new SaturationSlider(0, 0, 32, 256);
       $g('sat').size(32, 256).add(sat)
         .mousedown(sat, sat.mousedown)
         .mousemove(sat, sat.mousemove)
-        .mouseup(sat, sat.mouseup).play(32);
+        .mouseup(sat, sat.mouseup)
+        .mouseleave(sat, sat.mouseleave).play(32);
       
       var val = new ValueSlider(0, 0, 256, 32, 'horizontal');
       $g('val').size(256, 32).add(val)
         .mousedown(val, val.mousedown)
         .mousemove(val, val.mousemove)
-        .mouseup(val, val.mouseup).play(32);
+        .mouseup(val, val.mouseup)
+        .mouseleave(val, val.mouseleave).play(32);
       
       // Draw a scene using the current color
       var box = new Box(128, 128, 156, { dTheta: Math.PI / 120 });
@@ -223,11 +261,31 @@
         this.color = 'rgba(' + rgb.r + ', ' + rgb.g + ', ' + rgb.b + ', 255)';
       };
       
-      hue.addChangeListener(box);
-      val.addChangeListener(box);
-      sat.addChangeListener(box);
+      function HexText() {
+        Shape.apply(this, arguments);
+        this.text = "#000000";
+        this.color = "white";
+      }
+      HexText.prototype = extend(new Shape(), {
+        draw: function(ctx) {
+          ctx.fillStyle = this.color;
+          ctx.font = "18px Courier";
+          ctx.fillText(this.text, this.x, this.y);
+        },
+        
+        change: function() {
+          var rgb = hsvToRGB(hue.getHue(), sat.getSaturation(), val.getValue());
+          this.text = rgbToHex(rgb);
+        }
+      });
+      var hex = new HexText(5, 20);
       
-      $g('scene').size(256, 256).background('black').add(box).play(32);
+      hue.addChangeListener(box, hex);
+      val.addChangeListener(box, hex);
+      sat.addChangeListener(box, hex);
+      hue.change();
+      
+      $g('scene').size(256, 256).background('black').add(box).add(hex).play(32);
     });
     </script>
   </body>

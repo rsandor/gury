@@ -100,8 +100,51 @@ function hsvToColor(hsv) {
   return rgbToColor(hsvToRGB.apply(this, arguments));
 }
 
+function rgbToHex() {
+  var rgb;
+  if (arguments.length == 1) {
+    rgb = arguments[0];
+  }
+  else if (arguments.length == 3) {
+    rgb = {
+      r: arguments[0],
+      g: arguments[1],
+      b: arguments[2]
+    };
+  }
+  else {
+    return '#000000';
+  }
+  
+  function toHex(d) {
+    var r = d % 16;
+    var result;
+    if (d-r == 0) 
+      result = toChar(r);
+    else 
+      result = toHex( (d-r)/16 ) + toChar(r);
+    return result;
+  }
+
+  function toChar(n) {
+    const alpha = "0123456789ABCDEF";
+    return alpha.charAt(n);
+  }
+  
+  r = toHex(rgb.r);
+  g = toHex(rgb.g);
+  b = toHex(rgb.b);
+  
+  r = r.length == 1 ? "0"+r : r;
+  g = g.length == 1 ? "0"+g : g;
+  b = b.length == 1 ? "0"+b : b;
+  
+  return "#" + r + g + b;
+}
+
+
 /*
- * Class/Language Helpers
+ * Language Helpers
  */
 function extend(base, child) {
   var c = base;

@@ -876,12 +876,14 @@ window.$g = window.Gury = (function(window, jQuery) {
             }
           });
         };
-      
+            
         // Handles mouseleave when the user leaves the canvas itself
-        canvas.onmouseleave = function(e) {
+        canvas.onmouseout = function(e) {
+          console.log('mouse leave!')
           e.canvas = this;
           if (over != null) {
             gury.trigger('mouseleave', over, e);
+            over = null;
           }
         }; 
       },
