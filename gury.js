@@ -55,6 +55,10 @@ window.$g = window.Gury = (function(window, jQuery) {
     return isObject(v) && isDefined(v.getContext);
   }
   
+  function isImage(v) {
+    return isDefined(v.tagName) && v.tagName == "IMG";
+  }
+  
   /*
    * Check for jQuery
    * TODO This might be removed with the plugin binding
@@ -69,7 +73,6 @@ window.$g = window.Gury = (function(window, jQuery) {
    * Gury exception handling
    */
   var _failWithException = true;
-  
   function GuryException(msg) {
     if (_failWithException) {
       throw "Gury: " + msg;
@@ -925,8 +928,8 @@ window.$g = window.Gury = (function(window, jQuery) {
     if (isObject(q) && isDefined(q.selector, q.length)) {
       // TODO Document this behavior:
       // When using jQuery canvases will always be unregistered from old Gury instances
-      q.each(function(canvas) {
-        gury.register(q[i]);
+      q.each(function(i, canvas) {
+        gury.register(canvas);
       });
     }
     // By id
@@ -971,8 +974,8 @@ window.$g = window.Gury = (function(window, jQuery) {
 (function($) {
   if (typeof $ == "undefined" || $ == null) { return; }
   $.fn.gury = function(options) {
-    console.log(this);
-    //return $g(this, options);
+    //console.log(this);
+    return $g(this, options);
   };
 })(window.jQuery);
 

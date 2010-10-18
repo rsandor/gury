@@ -1,0 +1,69 @@
+<!--
+  gury - A jQuery inspired canvas utility library
+  By Ryan Sandor Richards
+-->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>jQuery - By Ryan Sandor Richards</title>
+    <style type="text/css" media="screen">
+      img { cursor: crosshair; }
+    </style>
+  </head>
+  <body style="font-family: helvetica; background-color: #444; color: #ddd; text-align: center">
+    
+    <h1>jQuery</h1>
+    <p>By Ryan Sandor Richards</p>
+    
+    <div id="content">
+      <canvas></canvas>
+    </div>
+    <div id="controls">
+      <p>(Mouse Over the Image)</p>
+    </div>
+    
+    <!-- Nice little link back to the repo -->
+    <p><a href="http://github.com/rsandor/gury" style="color: white">Project on github</a></p>
+    
+    <!-- Add jQuery for load behaviors -->
+    <script type="text/javascript" charset="utf-8" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+    
+    <!-- Include the gury library -->
+    <script type="text/javascript" charset="utf-8" src="../gury.js"></script>
+    
+    <!-- Include some shared helper classes -->
+    <script type="text/javascript" charset="utf-8" src="shared.js"></script>
+    
+    <!-- Now script up a neato canvas scene! -->
+    <script type="text/javascript" charset="utf-8">
+    function desaturate(ctx, canvas) {
+      var w = canvas.width, h = canvas.height;
+      var imgData = ctx.getImageData(0, 0, w, h);
+      var data = imgData.data;
+      for (var x = 0; x < w; x++) {
+        for (var y = 0; y < h; y++) {
+          var pos = 4*w*y + 4*x;
+          var r = data[pos], g = data[pos+1], b = data[pos+2];
+          var hsv = rgbToHSV(r, g, b);
+          hsv.s = 0;
+          var rgb = hsvToRGB(hsv);
+          data[pos] = rgb.r;
+          data[pos+1] = rgb.g;
+          data[pos+2] = rgb.b;
+        }
+      }
+      ctx.putImageData(imgData, 0, 0);
+    }
+  
+    $(function() {
+      var img = new Image();
+      img.src = "./images/mountains.jpg";
+      
+      $('canvas').gury().size(128, 128).add(function(ctx) {
+        ctx.drawImage(img, 0, 0);
+      }).play(32);
+      
+    });
+    </script>
+  </body>
+</html>
