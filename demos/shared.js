@@ -9,7 +9,20 @@
 /*
  * Some color functions
  */
-function rgbToHSV(r, g, b) {
+function rgbToHSV() {
+  var r, g, b;
+  
+  if (arguments.length == 1 && typeof(arguments[0]) == "object") {
+    r = arguments[0].r;
+    g = arguments[0].g;
+    b = arguments[0].b;
+  }
+  else if (arguments.length == 3){
+    r = arguments[0];
+    g = arguments[1];
+    b = arguments[2];
+  }
+  
   var m = Math.min(r, g, b);
   var M = Math.max(r, g, b);
   var C = M - m;
@@ -25,22 +38,85 @@ function rgbToHSV(r, g, b) {
   return {h: H, s: S, v: V};
 }
 
-function hsvToRGB(c) {
-  var t;
-  var h = c.h, s = c.s, v = c.v;
-  var C = v * s, Hp = h/60, X = C*(1 - Math.abs(Hp % 2 - 1));
+function hsvToRGB() {
+  var h, s, v;
+  
+  if (arguments.length == 1 && typeof(arguments[0]) == "object") {
+    h = arguments[0].h;
+    s = arguments[0].s;
+    v = arguments[0].v;
+  }
+  else if (arguments.length == 3) {
+    h = arguments[0];
+    s = arguments[1];
+    v = arguments[2];
+  }
+  
+  var C = v * s, 
+    Hp = h/60, 
+    X = C*(1 - Math.abs(Hp % 2 - 1));
   var m = v - C;
+  var t;
+  
 
-  if (h == 0) t = [0, 0, 0];
-  else if (Hp < 1) t = [C, X, 0];
+  if (Hp < 1) t = [C, X, 0];
   else if (Hp < 2) t = [X, C, 0];
   else if (Hp < 3) t = [0, C, X];
-  else if (hp < 4) t = [0, X, C];
+  else if (Hp < 4) t = [0, X, C];
   else if (Hp < 5) t = [X, 0, C];
   else t = [C, 0, X];
 
-  return {r: t[0] + m, g: t[1] + m, b: t[2] + m};
+  var rval = {
+    r: t[0] + m, g: t[1] + m, b: t[2] + m
+  };
+  
+  for (var k in rval) {
+    rval[k] = rval[k] * 255 | 0;
+  }
+
+  return rval;
 }
+
+function rgbToColor() {
+  var rgb;
+  if (arguments.length == 1) {
+    rgb = arguments[0];
+  }
+  else if (arguments.length == 3) {
+    rgb = {
+      r: arguments[0],
+      g: arguments[1],
+      b: arguments[2]
+    };
+  }
+  else {
+    return '#000';
+  }
+  
+  return 'rgba(' + rgb.r + ', ' + rgb.g + ', ' + rgb.b + ', 255)';
+}
+
+function hsvToColor(hsv) {
+  return rgbToColor(hsvToRGB.apply(this, arguments));
+}
+
+/*
+ * Class/Language Helpers
+ */
+function extend(base, child) {
+  var c = base;
+  for (var k in child) {
+    base[k] = child[k];
+  }
+  return c;
+}
+
+function each(array, closure) {
+  for (var i = 0; i < array.length; i++) {
+    closure(array[i]);
+  }
+}
+
 
 /*
  * Shape Base Class
@@ -123,3 +199,20 @@ function Circle() {
   };
 }
 Circle.prototype = new Shape();
+
+/*
+ * For drawing triangles
+ */
+function Triangle() {
+  Shape.apply(this, arguments);
+  this.render = function(ctx, canvas) {
+    var h = Math.sqrt(this.size*this.size*3/4);
+    ctx.beginPath();
+    ctx.moveTo(0, -h/2);
+    ctx.lineTo(this.size/2, h/2);
+    ctx.lineTo(-this.size/2, h/2);
+    ctx.lineTo(0, -h/2);
+    ctx.fill();
+  };
+}
+Triangle.prototype = new Shape();

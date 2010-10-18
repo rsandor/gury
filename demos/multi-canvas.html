@@ -1,0 +1,234 @@
+<!--
+  gury - A jQuery inspired canvas utility library
+  By Ryan Sandor Richards
+-->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>multi-canvas - By Ryan Sandor Richards</title>
+    <style type="text/css" media="screen">
+      #content {
+        width: 355px;
+        margin: 0 auto;
+      }
+      #content canvas {
+        float: left;
+        margin-left: 8px;
+      }
+      #content #val {
+        margin-left: 50px;
+        margin-top: 8px;
+      }
+    </style>
+  </head>
+  <body style="font-family: helvetica; background-color: #444; color: #ddd; text-align: center">
+    
+    <h1>multi-canvas</h1>
+    <p>By Ryan Sandor Richards</p>
+    
+    <div id="content">
+      <canvas style="cursor: crosshair" id="hue"></canvas>
+      <canvas id="scene"></canvas>
+      <canvas style="cursor: crosshair" id="sat"></canvas>
+      <canvas style="cursor: crosshair" id="val"></canvas>
+    </div>
+    <div id="controls" style="clear: both;"></div>
+    
+    <!-- Nice little link back to the repo -->
+    <p><a href="http://github.com/rsandor/gury" style="color: white">Project on github</a></p>
+    
+    <!-- Add jQuery for load behaviors -->
+    <script type="text/javascript" charset="utf-8" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+    
+    <!-- Include the gury library -->
+    <script type="text/javascript" charset="utf-8" src="../gury.js"></script>
+    
+    <!-- Include some shared helper classes -->
+    <script type="text/javascript" charset="utf-8" src="shared.js"></script>
+    
+    <!-- Now script up a neato canvas scene! -->
+    <script type="text/javascript" charset="utf-8">
+    $(function() {
+      function Slider(x, y, width, height, orient) {
+        this.x = x || 0;
+        this.y = y || 0;
+        this.width = width || 32;
+        this.height = height || 128;
+        this.orient = orient || 'vertical';
+        
+        this._value = 1;
+        this._gradient = null;
+        this._down = false;
+        
+        this._changeListeners = [];
+      }
+      Slider.prototype = {
+        _setValue: function(e) {
+          if (this.orient == 'vertical') {
+            this._value = (e.canvasY - this.y) / this.height;
+          }
+          else {
+            this._value = (e.canvasX - this.x) / this.width;
+          }
+          this.change(e);
+        },
+        
+        change: function(e) {
+          each(this._changeListeners, function(l) {
+            if (typeof l.change == "function") {
+              l.change();
+            }
+          });
+        },
+        
+        addChangeListener: function(ob) {
+          this._changeListeners.push(ob);
+        },
+        
+        mousedown: function(e) {
+          this._down = true;
+          this._setValue(e);
+        },
+        
+        mousemove: function(e) {
+          if (this._down) {
+            this._setValue(e);
+          }
+        },
+        
+        mouseup: function(e) {
+         this._down = false;
+        }
+      };
+      
+      function HueSlider() {
+        Slider.apply(this, arguments);
+        this._gradient = null;
+      }
+      HueSlider.prototype = extend(new Slider(), {
+        getGradient: function(ctx) {
+          if (!this._gradient) {
+            var mw, mh;
+            if (this.orient == "vertical") {
+              mw = 0;
+              mh = this.height;
+            }
+            else {
+              mw = this.width;
+              mh = 0;
+            }
+            
+            var grad = this._gradient = ctx.createLinearGradient(0, 0, mw, mh);
+            grad.addColorStop(0, '#f00');   // Red
+            grad.addColorStop(1/6, '#ff0'); // Yellow
+            grad.addColorStop(2/6, '#0f0'); // Green
+            grad.addColorStop(3/5, '#0ff'); // Cyan
+            grad.addColorStop(4/6, '#00f'); // Blue
+            grad.addColorStop(5/6, '#f0f'); // Magenta
+            grad.addColorStop(1, '#f00');   // Red
+          }
+          return this._gradient;
+        },
+        
+        draw: function(ctx, canvas) {
+          ctx.fillStyle = this.getGradient(ctx);
+          ctx.fillRect(this.x, this.y, this.width, this.height);
+        },
+        
+        getHue: function() {
+          return 360 * this._value;
+        }
+      });
+     
+      function ValueSlider() {
+        Slider.apply(this, arguments);
+        this._gradient = null;
+      }
+      ValueSlider.prototype = extend(new Slider(), {
+        draw: function(ctx, canvas) {
+          var mw, mh;
+          if (this.orient == "vertical") {
+            mw = 0;
+            mh = this.height;
+          }
+          else {
+            mw = this.width;
+            mh = 0;
+          }
+          
+          var grad = ctx.createLinearGradient(0, 0, mw, mh);
+          grad.addColorStop(0, '#000');   // Black
+          grad.addColorStop(1, hsvToColor(hue.getHue(), 1.0, 1.0));   // Full Value
+          
+          ctx.fillStyle = grad;
+          ctx.fillRect(this.x, this.y, this.width, this.height);
+        },
+        
+        getValue: function() {
+          return this._value;
+        }
+      });
+     
+      function SaturationSlider() {
+        Slider.apply(this, arguments);
+      }
+      SaturationSlider.prototype = extend(new Slider(), {
+        draw: function(ctx, canvas) {
+          var mw, mh;
+          if (this.orient == "vertical") {
+            mw = 0;
+            mh = this.height;
+          }
+          else {
+            mw = this.width;
+            mh = 0;
+          }
+          
+          var grad = ctx.createLinearGradient(0, 0, mw, mh);
+          grad.addColorStop(0, '#fff');   // black
+          grad.addColorStop(1, hsvToColor(hue.getHue(), 1.0, 1.0));   // Fully saturated
+          
+          ctx.fillStyle = grad;
+          ctx.fillRect(this.x, this.y, this.width, this.height);
+        },
+        
+        getSaturation: function() {
+          return this._value;
+        }
+      });
+     
+      // Create the color sliders
+      var hue = new HueSlider(0, 0, 32, 256);
+      $g('hue').size(32, 256).add(hue)
+        .mousedown(hue, hue.mousedown)
+        .mousemove(hue, hue.mousemove)
+        .mouseup(hue, hue.mouseup).play(32);
+      
+      var sat = new SaturationSlider(0, 0, 32, 256);
+      $g('sat').size(32, 256).add(sat)
+        .mousedown(sat, sat.mousedown)
+        .mousemove(sat, sat.mousemove)
+        .mouseup(sat, sat.mouseup).play(32);
+      
+      var val = new ValueSlider(0, 0, 256, 32, 'horizontal');
+      $g('val').size(256, 32).add(val)
+        .mousedown(val, val.mousedown)
+        .mousemove(val, val.mousemove)
+        .mouseup(val, val.mouseup).play(32);
+      
+      // Draw a scene using the current color
+      var box = new Box(128, 128, 156, { dTheta: Math.PI / 120 });
+      box.change = function() {
+        var rgb = hsvToRGB(hue.getHue(), sat.getSaturation(), val.getValue());
+        this.color = 'rgba(' + rgb.r + ', ' + rgb.g + ', ' + rgb.b + ', 255)';
+      };
+      
+      hue.addChangeListener(box);
+      val.addChangeListener(box);
+      sat.addChangeListener(box);
+      
+      $g('scene').size(256, 256).background('black').add(box).play(32);
+    });
+    </script>
+  </body>
+</html>
