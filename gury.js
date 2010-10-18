@@ -117,7 +117,7 @@ window.$g = window.Gury = (function(window, jQuery) {
     
     this.remove = function(key) {
       if (isDefined(key)) {
-        var h = hask(key);
+        var h = hash(key);
         delete table[h];
         length--;
       }
@@ -177,7 +177,7 @@ window.$g = window.Gury = (function(window, jQuery) {
     this.each = function(closure) {
       if (ordered) {
         for (var i = 0; i < ordered.length; i++) {
-          closure(ordered[i], i);
+          closure.call(this, ordered[i], i);
         }
       }
       else {
