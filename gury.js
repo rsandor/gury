@@ -831,6 +831,11 @@ window.$g = window.Gury = (function(window, jQuery) {
     function triggerObjectAt(gury, e, name, closure) {
       if (isDefined(gury._events[name])) {
         var pos = getPosition(e.canvas, e);
+        
+        // Annotate event object with Gury specific fields
+        e.canvasX = pos.x;
+        e.canvasY = pos.y;
+        
         var found = false;
         
         var sorted = new Set(true);
