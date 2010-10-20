@@ -879,7 +879,6 @@ window.$g = window.Gury = (function(window, jQuery) {
             
         // Handles mouseleave when the user leaves the canvas itself
         canvas.onmouseout = function(e) {
-          console.log('mouse leave!')
           e.canvas = this;
           if (over != null) {
             gury.trigger('mouseleave', over, e);
@@ -964,7 +963,6 @@ window.$g = window.Gury = (function(window, jQuery) {
 (function($) {
   if (typeof $ == "undefined" || $ == null) { return; }
   $.fn.gury = function(options) {
-    //console.log(this);
     return $g(this, options);
   };
 })(window.jQuery);
