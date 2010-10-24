@@ -246,8 +246,10 @@ window.$g = window.Gury = (function(window, jQuery) {
         var lastName = tags[tags.length - 1];
 
         for (var i = 0; i < tags.length; i++) {
-          if (!currentSpace.hasChild(tags[i]))
+          if (!currentSpace.hasChild(tags[i])) {
             return null;
+          }
+            
           currentSpace = currentSpace.getChild(tags[i]);
         }
 
@@ -255,10 +257,7 @@ window.$g = window.Gury = (function(window, jQuery) {
       },
 
       add: function(tag, object) {
-        if (!tag.match(TagSpace.TAG_REGEX)) {
-          return null;
-        }
-
+        var tags = tag.split('.');
         var currentSpace = this;
         var tags = tag.split('.');
         var lastName = tags[tags.length - 1];
@@ -691,7 +690,13 @@ window.$g = window.Gury = (function(window, jQuery) {
     function objects(gury, query) {
       var objects = new Set();
       if (isString(query)) {
-        objects = gury._tags.find(query).getObjects();
+        var sp = gury._tags.find(query);
+        if (sp != null) {
+          objects = sp.getObjects();
+        }
+        else {
+          console.log(query);
+        }
       }
       else if (isDefined(query) && gury._objects.has(query)) {
         objects.add(query);
