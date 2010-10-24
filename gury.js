@@ -694,9 +694,6 @@ window.$g = window.Gury = (function(window, jQuery) {
         if (sp != null) {
           objects = sp.getObjects();
         }
-        else {
-          console.log(query);
-        }
       }
       else if (isDefined(query) && gury._objects.has(query)) {
         objects.add(query);
