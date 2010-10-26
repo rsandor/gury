@@ -32,7 +32,7 @@
     <script type="text/javascript" charset="utf-8" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
     
     <!-- Include the gury library -->
-    <script type="text/javascript" charset="utf-8" src="../gury.min.js"></script>
+    <script type="text/javascript" charset="utf-8" src="../gury.js"></script>
     
     <!-- Now script up a neato canvas scene! -->
     <script type="text/javascript" charset="utf-8">
@@ -88,7 +88,7 @@
           g.add(color, new Ball(color));
         }
         
-        g.play(32);
+        g.clear(false).play(32);
         
         // Add the toggle actions
         $('#toggle_red').click(function() { g.toggle('red'); });

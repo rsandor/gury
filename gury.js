@@ -259,7 +259,6 @@ window.$g = window.Gury = (function(window, jQuery) {
       add: function(tag, object) {
         var tags = tag.split('.');
         var currentSpace = this;
-        var tags = tag.split('.');
         var lastName = tags[tags.length - 1];
 
         for (var i = 0; i < tags.length; i++) {
@@ -421,6 +420,9 @@ window.$g = window.Gury = (function(window, jQuery) {
     this._paused = false;
     this._loop_interval = null;
   
+    // For toggling automatic clearing on draw (defaults to true)
+    this._clear_on_draw = true;
+  
     // Event members
     this._events = {};
     
@@ -549,7 +551,12 @@ window.$g = window.Gury = (function(window, jQuery) {
       return this;
     },
   
-    clear: function() {
+    clear: function(on) {
+      if (typeof on != "undefined") {
+        this._clear_on_draw = on;
+        return this;
+      }
+      
       this.canvases.each(function(canvas) {
         var ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -568,7 +575,9 @@ window.$g = window.Gury = (function(window, jQuery) {
     },
     
     draw: function() {
-      this.clear();
+      if (this._clear_on_draw) {
+        this.clear();
+      }
 
       var gury = this;
       gury._objects.each(function(ob) {
