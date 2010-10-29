@@ -329,7 +329,7 @@ window.$g = window.Gury = (function(window, jQuery) {
     var lastWidth, lastHeight;
     
     function resetContext(gury) {
-      var canvas = gury.canvases.first();
+      var canvas = gury.canvas;
       if (!isDefined(canvas)) {
         return false;
       }
@@ -414,7 +414,9 @@ window.$g = window.Gury = (function(window, jQuery) {
     // TODO Add configuration options
     
     // Members
-    this.canvases = new Set(true);
+    this.canvas = null;
+    this.ctx = null;
+    
     this._objects = new Set(true);
     this._tags = new TagSpace('__global');
     this._paused = false;
@@ -431,25 +433,14 @@ window.$g = window.Gury = (function(window, jQuery) {
     this.nextZ = function() { return z++; };
   }
   Gury.prototype = {
-    get canvas() {
-      return this.canvases.first();
-    },
-    
-    get ctx() {
-      var canvas = this.canvases.first();
-      if (canvas) {
-        return canvas.getContext('2d');
-      }
-      return null;
-    },
-    
     register: function (canvas) {
       if (isCanvas(canvas)) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
         if (canvasToGury.has(canvas)) {
           canvasToGury.get(canvas).unregister(canvas);
         }
         canvasToGury.set(canvas, this);
-        this.canvases.add(canvas);
         Events.bind(this, canvas);
       }
       else {
@@ -462,38 +453,34 @@ window.$g = window.Gury = (function(window, jQuery) {
       if (isCanvas(canvas)) {
         canvasToGury.remove(canvas);
         Events.unbind(this, canvas);
-        this.canvases.remove(canvas);
+        this.canvas = null;
+        this.ctx = null;
       }
       return this;
     },
     
     place: function(node) {
-      this.canvases.each(function(canvas) {
-        if (jQueryAvailable()) {
-          $(node).append(canvas);
-        }
-        else if (typeof node == "object" && typeof node.addChild == "function") {
-          node.addChild(canvas);
-        }
-        else {
-          GuryException("place() - Unable to place canvas tag (is jQuery loaded?)");
-        }
-      });
+      var canvas = this.canvas;
+      if (jQueryAvailable()) {
+        $(node).append(canvas);
+      }
+      else if (typeof node == "object" && typeof node.addChild == "function") {
+        node.addChild(canvas);
+      }
+      else {
+        GuryException("place() - Unable to place canvas tag (is jQuery loaded?)");
+      }
       return this;
     },
     
     size: function(w, h) {
-      this.canvases.each(function(canvas) {
-        canvas.width = w;
-        canvas.height = h;
-      });
+      this.canvas.width = w;
+      this.canvas.height = h;
       return this;
     },
     
     background: function(bg) {
-      this.canvases.each(function(canvas) {
-        canvas.style.background = bg;
-      });
+      this.canvas.style.background = bg;
       return this;
     },
     
@@ -556,11 +543,7 @@ window.$g = window.Gury = (function(window, jQuery) {
         this._clear_on_draw = on;
         return this;
       }
-      
-      this.canvases.each(function(canvas) {
-        var ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      });
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       return this;
     },
     
@@ -580,18 +563,18 @@ window.$g = window.Gury = (function(window, jQuery) {
       }
 
       var gury = this;
+      
       gury._objects.each(function(ob) {
         if (!ob._gury.visible || !isObjectOrFunction(ob)) {
           return;
         }
-        gury.canvases.each(function(canvas) { 
-          if (typeof ob == "function") {
-            ob.call(gury, canvas.getContext('2d'), canvas);
-          }
-          else if (typeof ob == "object" && typeof ob.draw != "undefined") {
-            ob.draw(canvas.getContext('2d'), canvas);
-          }
-        });
+        
+        if (typeof ob == "function") {
+          ob.call(gury, gury.ctx, gury.canvas);
+        }
+        else if (typeof ob == "object" && typeof ob.draw != "undefined") {
+          ob.draw(gury.ctx, gury.canvas);
+        }
       });
 
       return this;
@@ -924,16 +907,8 @@ window.$g = window.Gury = (function(window, jQuery) {
     var gury = new Gury(options);
     var canvas;
     
-    // Via jQuery
-    if (isObject(q) && isDefined(q.selector, q.length)) {
-      // TODO Document this behavior:
-      // When using jQuery canvases will always be unregistered from old Gury instances
-      q.each(function(i, canvas) {
-        gury.register(canvas);
-      });
-    }
     // By id
-    else if (isString(q)) {
+    if (isString(q)) {
       canvas = document.getElementById(q);
       if (!isDefined(canvas)) {
         GuryException("Unable to find canvas with id=\"" + q + "\"");
@@ -970,13 +945,14 @@ window.$g = window.Gury = (function(window, jQuery) {
 
 /*
  * jQuery plugin integration
- */
+ *
 (function($) {
   if (typeof $ == "undefined" || $ == null) { return; }
   $.fn.gury = function(options) {
     return $g(this, options);
   };
 })(window.jQuery);
+*/
 
 /* "There's a star man waiting in the sky. He'd like to come and meet us but 
     he think's he'll blow our minds." */

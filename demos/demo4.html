@@ -81,18 +81,19 @@
               }
             }
           }          
-        }).canvases.each(function(canvas) {
-          $(canvas).mousedown(function(e) {
-            var x = (e.pageX - $(this).offset().left) / 16 | 0;
-            var y = (e.pageY - $(this).offset().top) / 16 | 0;
-            var c = get(x, y);
-
-            if (get(x+1, y) == c || get(x-1, y) == c || get(x, y+1) == c || get(x, y-1) == c)
-              remove(x, y, board[x][y]);
-
-            gury.draw();
-          });
         });
+        
+        $(gury.canvas).mousedown(function(e) {
+          var x = (e.pageX - $(this).offset().left) / 16 | 0;
+          var y = (e.pageY - $(this).offset().top) / 16 | 0;
+          var c = get(x, y);
+
+          if (get(x+1, y) == c || get(x-1, y) == c || get(x, y+1) == c || get(x, y-1) == c)
+            remove(x, y, board[x][y]);
+
+          gury.draw();
+        });
+        
   
         reset();
 
