@@ -312,7 +312,7 @@ window.$g = window.Gury = (function(window, jQuery) {
    * HitMap Module
    * TODO Possibly expose showing and timing functionality in the future
    */
-  var HitMap = window.hm = (function(show, time) {
+  var HitMap = (function(show, time) {
     // Secondary hitmap canvas
     var map = document.createElement('canvas');
     var ctx = map.getContext('2d');
@@ -432,6 +432,7 @@ window.$g = window.Gury = (function(window, jQuery) {
     var z = 0;
     this.nextZ = function() { return z++; };
   }
+  
   Gury.prototype = {
     register: function (canvas) {
       if (isCanvas(canvas)) {
@@ -523,6 +524,15 @@ window.$g = window.Gury = (function(window, jQuery) {
       // Add to the rendering list
       this._objects.add(object);
 
+      // Automatic event binding for the object
+      var events = ['click', 'mousedown', 'mouseup', 'mousemove', 'mouseenter', 'mouseleave'];      
+      for (var e in events) {
+        var eventName = events[e];
+        if (isDefined(object[eventName]) && isFunction(object[eventName])) {
+          this.bind(object, eventName, object[eventName]);
+        }
+      }
+      
       return this;
     },
   
@@ -942,17 +952,6 @@ window.$g = window.Gury = (function(window, jQuery) {
 
   return GuryInterface;
 })(window, window.jQuery);
-
-/*
- * jQuery plugin integration
- *
-(function($) {
-  if (typeof $ == "undefined" || $ == null) { return; }
-  $.fn.gury = function(options) {
-    return $g(this, options);
-  };
-})(window.jQuery);
-*/
 
 /* "There's a star man waiting in the sky. He'd like to come and meet us but 
     he think's he'll blow our minds." */
