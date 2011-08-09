@@ -538,23 +538,14 @@ window.$g = window.Gury = (function(window, jQuery) {
     },
   
     /*
-     * TODO Document me
      * TODO Add Tagging
-     * 
-     * for adding global transformations to all objects
-     *
-     * { 
-     *    up : // runs before drawing all other objects, 
-     *    down: // runs after all other objects
-     * }
-     * 
      */
     addTransform: function(object) {
       this._transforms.add(object);
     },
   
     /*
-     * TODO Document me, add tagging.
+     * TODO Add Tagging
      */
     removeTransform: function(object) {
       this._transforms.remove(object);
