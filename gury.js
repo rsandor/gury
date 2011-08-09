@@ -419,6 +419,7 @@ window.$g = window.Gury = (function(window, jQuery) {
     
     this._objects = new Set(true);
     this._tags = new TagSpace('__global');
+    this._transforms = new Set(true);
     this._paused = false;
     this._loop_interval = null;
   
@@ -536,6 +537,29 @@ window.$g = window.Gury = (function(window, jQuery) {
       return this;
     },
   
+    /*
+     * TODO Document me
+     * TODO Add Tagging
+     * 
+     * for adding global transformations to all objects
+     *
+     * { 
+     *    up : // runs before drawing all other objects, 
+     *    down: // runs after all other objects
+     * }
+     * 
+     */
+    addTransform: function(object) {
+      this._transforms.add(object);
+    },
+  
+    /*
+     * TODO Document me, add tagging.
+     */
+    removeTransform: function(object) {
+      this._transforms.remove(object);
+    },
+  
     remove: function(object) {
       if (isDefined(object)) {
         var gury = this;
@@ -574,6 +598,12 @@ window.$g = window.Gury = (function(window, jQuery) {
 
       var gury = this;
       
+      // Transforms up
+      gury._transforms.each(function(tr) {
+        tr.up(gury.ctx, gury.canvas);
+      });
+      
+      // Draw the objects
       gury._objects.each(function(ob) {
         if (!ob._gury.visible || !isObjectOrFunction(ob)) {
           return;
@@ -585,6 +615,11 @@ window.$g = window.Gury = (function(window, jQuery) {
         else if (typeof ob == "object" && typeof ob.draw != "undefined") {
           ob.draw(gury.ctx, gury.canvas);
         }
+      });
+
+      // Transforms down
+      gury._transforms.each(function(tr) {
+        tr.down(gury.ctx, gury.canvas);
       });
 
       return this;
